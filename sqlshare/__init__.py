@@ -76,6 +76,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
 @param delimiter: (optional default = tab) the character to be a delimiter, or 'tab' to refer to '\t'
   """
   def upload(self, filepath, tablenames=None, hasHeader='true', delimiter='tab'):
+    print "uploading %s into %s" % (filepath, tablenames)
     fnames = [fn for fn in glob.glob(filepath)]
     if not tablenames: 
       tablenames = fnames
@@ -136,7 +137,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
         #'Content-Type': content_type,
         'Authorization': 'ss_user ' + self.username
     }
-    selector = '%s/%s/%s' % (self.RESTFILE, tableid, operation)
+    selector = '%s/%s/%s' % (self.RESTFILE, urllib.quote(tableid), operation)
     h.request('GET', selector, '', headers)
     res = h.getresponse()
     return res
@@ -150,9 +151,9 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
     }
 
     queryobj = {
-      "description":"description",
+      "description":"",
       "sql_code":sql,
-	  "is_public": False
+	    "is_public": False
     }
 
     selector = "%s/query/%s/%s" % (self.RESTDB, schema, name) 
@@ -252,7 +253,7 @@ def _encode_multipart_formdata(fields, files):
         #filename = filename.split('\\')[-1]
         contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
         L.append('--%s' % BOUNDARY)
-        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
+        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key,key))
         L.append('Content-Type: %s' % contenttype)
         fd.seek(0)
         L.append('\r\n' + fd.read())
