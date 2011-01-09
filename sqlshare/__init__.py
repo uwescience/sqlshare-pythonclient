@@ -103,7 +103,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
       parser = self.get_parser(datasetname)
        
       # step 2.5: optionally change parameters
-      parser['table']['name'] = tablename
+      parser['table']['name'] = tn
 
       print "putting %s..." % tablename
       # step 3: parse and insert to SQL
@@ -179,6 +179,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
         'Accept': 'application/json'
     }
     selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
+    print selector
     h.request('PUT', selector, json.dumps(parser), headers)
     res = h.getresponse()
     if res.status != 200:
@@ -253,7 +254,7 @@ def _encode_multipart_formdata(fields, files):
         #filename = filename.split('\\')[-1]
         contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
         L.append('--%s' % BOUNDARY)
-        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key,key))
+        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key,filename))
         L.append('Content-Type: %s' % contenttype)
         fd.seek(0)
         L.append('\r\n' + fd.read())
