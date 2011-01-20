@@ -7,6 +7,7 @@ import os.path, tempfile
 import glob
 import stat, mimetypes
 import httplib
+#httplib.HTTPConnection.debuglevel = 1
 import json
 import sys
 import urllib
@@ -23,7 +24,7 @@ class SQLShareUploadError(SQLShareError):
   pass
 
 class SQLShare:
-  HOST = "sqlshare-rest-test.cloudapp.net" #"sqlshare-test.cloudapp.net"
+  HOST = "sqlshare-rest.cloudapp.net" #"sqlshare-test.cloudapp.net"
   REST = "/REST.svc/v1"
   RESTFILE = REST + "/file"
   RESTDB = REST + "/db"
@@ -88,13 +89,11 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
     for fn,tn in pairs:
       yield self.uploadone(fn,tn,schema)
 
-
   def uploadone(self, fn, tn, schema):
-      
       print "pushing %s..." % fn
       # step 1: push file
       quotedtableid = self.post_file(fn, tn) 
-      datasetname = quotedtableid[1:-1]
+      datasetname = json.loads(quotedtableid)
       #datasetname = 'xauthors.csv'
       tablename = "table_%s" % datasetname
    
@@ -103,7 +102,8 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
       parser = self.get_parser(datasetname)
        
       # step 2.5: optionally change parameters
-      parser['table']['name'] = tn
+      parser['table']['name'] = tablename
+      print parser#['table']['name'] = tablename
 
       print "putting %s..." % tablename
       # step 3: parse and insert to SQL
@@ -113,7 +113,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
       print "saving query %s..." % datasetname
       # step 4: create view
       q = "SELECT * FROM [%s]" % tablename
-      self.save_query(q, schema, datasetname, "Uploaded using %s from '%s'" % (__file__,fn))
+      self.save_query(q, schema, tn, "Uploaded using %s from '%s'" % (__file__,fn))
 
       print "finished %s" % datasetname
       return datasetname
@@ -151,14 +151,15 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
     }
 
     queryobj = {
-      "description":"",
+      "description":"description",
       "sql_code":sql,
 	    "is_public": False
     }
 
-    selector = "%s/query/%s/%s" % (self.RESTDB, schema, name) 
+    selector = "%s/query/%s/%s" % (self.RESTDB, schema, urllib.quote(name)) 
     h.request('PUT', selector, json.dumps(queryobj), headers)
     res = h.getresponse()
+    print res
     if res.status == 200: return 'modified'
     elif res.status == 201: return 'created' 
     else: raise SQLShareError("%s: %s" % (res.status, res.read()))
@@ -248,13 +249,15 @@ def _encode_multipart_formdata(fields, files):
         L.append('Content-Disposition: form-data; name="%s"' % key)
         L.append('')
         L.append(value)
-    for (key, fd) in files:
+    for (tablename, fd) in files:
         file_size = os.fstat(fd.fileno())[stat.ST_SIZE]
         filename = os.path.basename(fd.name) #fd.name.split('/')[-1]
         #filename = filename.split('\\')[-1]
         contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
         L.append('--%s' % BOUNDARY)
-        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key,filename))
+        # Can't save the table with a different name
+        # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key,filename))
+        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (tablename,tablename))
         L.append('Content-Type: %s' % contenttype)
         fd.seek(0)
         L.append('\r\n' + fd.read())
