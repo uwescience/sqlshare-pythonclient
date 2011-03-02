@@ -17,6 +17,7 @@ def debug(m):
   print m
 
 
+
 class SQLShareError(ValueError):
   pass
 
@@ -24,7 +25,7 @@ class SQLShareUploadError(SQLShareError):
   pass
 
 class SQLShare:
-  HOST = "sqlshare-rest-test.cloudapp.net" #"192.168.3.109" #
+  HOST = "sqlshare-rest-test.cloudapp.net" #"192.168.3.109"# 
   REST = "/REST.svc"
   RESTFILE = REST + "/v2/file"
   RESTDB = REST + "/v1/db"
@@ -262,6 +263,25 @@ Save a query
     if res.status == 200: return res.read()
     else: raise SQLShareError("%s: %s" % (res.status, res.read()))	    
     
+
+  def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
+    h = httplib.HTTPSConnection(self.HOST)        
+    headers = {}
+    self.set_auth_header(headers)
+    selector = "/REST.svc/v1/materialize?query_name=%s" % urllib.quote(query_name)
+    
+    if new_table_name != None:
+        selector += '&table_name=%s' % urllib.quote(new_table_name)
+        
+    if new_query_name != None:
+        selector += '&new_query_name=%s' % urllib.quote(new_query_name)
+        
+    h.request('GET', selector, '', headers)
+    res = h.getresponse()
+    if res.status >= 400:
+        raise SQLShareError("code: %s : %s" % (res.status, res.read()))
+    
+    return json.loads(res.read())
     
   def execute_sql(self, sql):
     h = httplib.HTTPSConnection(self.HOST)        
@@ -274,7 +294,7 @@ Save a query
         location = res.getheader('Location')
         return json.loads(self.poll_execute_sql(location))
     else:
-        raise SqlExecuteError("code: %s : %s" % (res.status, res.read()))
+        raise SQLShareError("code: %s : %s" % (res.status, res.read()))
     
         
   def get_parser(self, tableid):
