@@ -1,5 +1,5 @@
 """
-Upload multiple files to sqlshare
+Upload a single file to sqlshare.  Allow renaming and chunking.
 """
 
 import sys

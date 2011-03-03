@@ -118,8 +118,8 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
     print "uploading %s into %s" % (filepath, tablenames)
     fnames = [fn for fn in glob.glob(filepath)]
     if not tablenames: 
-      tablenames = fnames
-    pairs = [(fn, t or os.path.basename(fn)) for (fn, t) in zip(fnames,tablenames)]
+      tablenames = [os.path.basename(fn) for fn in fnames]
+    pairs = zip(fnames,tablenames)
     # get user info; we need the schema name
 
     for fn,tn in pairs:

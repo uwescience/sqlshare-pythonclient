@@ -16,7 +16,9 @@ python %s billhowe@washington.edu foo "select * from sys.tables" "alltables"
 
 def savequery(sql,name, description,username, password):
   conn = sqlshare.SQLShare(username,password)
-  conn.save_query(sql,name, description)
+  info = conn.get_userinfo()
+  schema = info["schema"]
+  conn.save_query(sql,schema,name, description)
 
 def main():
   if len(sys.argv) < 4:
