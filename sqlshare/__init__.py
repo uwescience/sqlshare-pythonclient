@@ -25,7 +25,7 @@ class SQLShareUploadError(SQLShareError):
   pass
 
 class SQLShare:
-  HOST = "sqlshare-rest-test.cloudapp.net" #"192.168.3.109"# 
+  HOST = "192.168.3.109"# "sqlshare-rest-test.cloudapp.net" #
   REST = "/REST.svc"
   RESTFILE = REST + "/v2/file"
   RESTDB = REST + "/v1/db"
@@ -62,10 +62,10 @@ Upload a datasheet into Sql
 @param delimiter: (optional default = tab) the character to be a delimiter, or 'tab' to refer to '\t'
   """
   def post_file(self, filepath, tablename=None, hasHeader='true', delimiter='tab'):
-    tableid = tablename or os.path.basename(filename)
+    filename = os.path.basename(filepath)
     fileobj = file(filepath)
     fields = []
-    content_type, body = _encode_multipart_formdata(fields, [(tableid,fileobj)])
+    content_type, body = _encode_multipart_formdata_via_chunks(filename, chunk)
 
     h = httplib.HTTPSConnection(self.HOST)
     headers = {
@@ -83,10 +83,10 @@ Upload a datasheet into Sql
     
     
   def post_file_chunk(self, filepath, dataset_name, chunk, force_append, force_column_headers):
-    tableid = dataset_name or os.path.basename(filename)
+    filename = os.path.basename(filepath)
     fileobj = file(filepath)
     fields = []
-    content_type, body = _encode_multipart_formdata_via_chunks(tableid, chunk)
+    content_type, body = _encode_multipart_formdata_via_chunks(filename, chunk)
 
     h = httplib.HTTPSConnection(self.HOST)
     headers = {
@@ -428,5 +428,3 @@ def _encode_multipart_formdata(fields, files):
     body = CRLF.join(L)
     content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
     return content_type, body
-
-
