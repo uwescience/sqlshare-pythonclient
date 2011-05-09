@@ -1,0 +1,9 @@
+A python client for the SQLShare REST API.
+
+Not complete and partially out of date (read: broken) as of May 2011.
+
+Test scripts in test/*.sh
+
+Ex:
+
+$ source test/test_save.sh
