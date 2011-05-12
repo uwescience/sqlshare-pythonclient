@@ -25,7 +25,7 @@ class SQLShareUploadError(SQLShareError):
   pass
 
 class SQLShare:
-  HOST = "192.168.3.109"# "sqlshare-rest-test.cloudapp.net" #
+  HOST = "sqlshare-rest.cloudapp.net"# "sqlshare-rest-test.cloudapp.net" #
   REST = "/REST.svc"
   RESTFILE = REST + "/v2/file"
   RESTDB = REST + "/v1/db"
@@ -44,7 +44,7 @@ class SQLShare:
  
 
   def set_auth_header(self, header):
-    header['Authorization'] = 'ss_user ' + self.username
+    header['Authorization'] = 'ss_apikey ' + self.username + ' : ' self.password
     
   def chunksoff(self, f, size):
     print os.path.getsize(f.name)
