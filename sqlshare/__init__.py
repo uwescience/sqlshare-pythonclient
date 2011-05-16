@@ -12,11 +12,29 @@ import json
 import sys
 import urllib
 import time
+import os
+from ConfigParser import SafeConfigParser
+import getpass
 
 def debug(m):
   print m
 
 
+_DEFAULT_CONFIG = {
+    'host': 'sqlshare-rest.cloudapp.net',
+    'chunkSize': str(10*2**20)
+}
+
+"""
+load information from default configuration file ($HOME/.sqlshare/config)
+"""
+def _load_conf():
+    config = SafeConfigParser(_DEFAULT_CONFIG)
+    confFile = os.path.expanduser('~/.sqlshare/config')
+    if os.path.exists(confFile):
+       # load the configuration
+       config.read(confFile)
+    return config
 
 class SQLShareError(ValueError):
   pass
@@ -25,26 +43,40 @@ class SQLShareUploadError(SQLShareError):
   pass
 
 class SQLShare:
-  HOST = "sqlshare-rest.cloudapp.net"# "sqlshare-rest-test.cloudapp.net" #
+#  HOST = "sqlshare-rest.cloudapp.net"# "sqlshare-rest-test.cloudapp.net" #
+#  HOST = "128.208.7.49"# "sqlshare-rest-test.cloudapp.net" #
   REST = "/REST.svc"
   RESTFILE = REST + "/v2/file"
   RESTDB = REST + "/v1/db"
-  CHUNKSIZE = 10*2**20 # 1MB (test)
+  RESTDB2 = REST + "/v2/db"
+#  CHUNKSIZE = 10*2**20 # 1MB (test)
   ERROR_NUM = 0
+  SQLSHARE_SECTION = 'sqlshare'
 
   """
 @param host: the DNS URL
 @param username: sql share username
 @param password: sql share username's password
 """
-  def __init__(self,  username, password):
+  def __init__(self,  username = None, password = None):
+    self.config = _load_conf()
     self.username = username
     self.password = password
-    self.schema = self.get_userinfo()["schema"]
- 
+    if self.username is None:
+        self.username = self.config.get('sqlshare','user')
+    if self.password is None:
+        self.password = self.config.get('sqlshare','password')
+    # if password is still none, get it from command line
+    if self.password is None:
+        self.password = getpass.getpass()
 
-  def set_auth_header(self, header):
-    header['Authorization'] = 'ss_apikey ' + self.username + ' : ' self.password
+    self.HOST = self.config.get('sqlshare','host')
+    self.CHUNKSIZE = self.config.getint('sqlshare','chunkSize')
+    self.schema = self.get_userinfo()["schema"]
+
+  def set_auth_header(self, header = {}):
+    header['Authorization'] = 'ss_apikey ' + self.username + ' : ' + self.password
+    return header
     
   def chunksoff(self, f, size):
     print os.path.getsize(f.name)
@@ -71,8 +103,8 @@ Upload a datasheet into Sql
     headers = {
       'User-Agent': 'python_multipart_caller',
       'Content-Type': content_type,
-      'Authorization': 'ss_user ' + self.username
     }
+    self.set_auth_header(headers)
 
     selector = self.RESTFILE
     h.request('POST', selector, body, headers)
@@ -154,8 +186,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
   def poll_selector(self, selector):    
     while True:        
         h = httplib.HTTPSConnection(self.HOST)
-        headers = {}
-        self.set_auth_header(headers)    
+        headers = self.set_auth_header()
         h.request('GET', selector, '', headers)
         res = h.getresponse()
         if res.status == 200:
@@ -173,9 +204,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
   
   def get_userinfo(self):
     h = httplib.HTTPSConnection(self.HOST)
-    headers = {
-        'Authorization': 'ss_user ' + self.username
-    }
+    headers = self.set_auth_header()
     selector = '%s/v1/user/%s' % (self.REST, self.username)
     h.request('GET', selector, '', headers)
     res = h.getresponse()
@@ -186,10 +215,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
 
   def tableop(self, tableid, operation):
     h = httplib.HTTPSConnection(self.HOST)
-    headers = {
-        #'Content-Type': content_type,
-        'Authorization': 'ss_user ' + self.username
-    }
+    headers = self.set_auth_header()
     selector = '%s/%s/%s' % (self.RESTFILE, urllib.quote(tableid), operation)
     h.request('GET', selector, '', headers)
     res = h.getresponse()
@@ -200,8 +226,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
   """
   def get_all_queries(self):    
     h = httplib.HTTPSConnection(self.HOST)    
-    headers = {}
-    self.set_auth_header(headers)
+    headers = self.set_auth_header()
     selector = "%s/query" % (self.RESTDB)    
     h.request('GET', selector, '', headers)
     res = h.getresponse()
@@ -213,8 +238,7 @@ Get meta data about target query, this also includes a cached sampleset of first
   """
   def get_query(self, schema, query_name):
     h = httplib.HTTPSConnection(self.HOST)    
-    headers = {}
-    self.set_auth_header(headers)
+    headers = self.set_auth_header()
     selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(schema), urllib.quote(query_name))    
     h.request('GET', selector, '', headers)
     res = h.getresponse()
@@ -229,8 +253,8 @@ Save a query
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': 'ss_user ' + self.username
     }
+    self.set_auth_header(headers)
 
     queryobj = {
       "description":description,
@@ -248,15 +272,13 @@ Save a query
     
   def delete_query(self, query_name):
     h = httplib.HTTPSConnection(self.HOST)    
-    headers = {}
-    self.set_auth_header(headers)
+    headers = self.set_auth_header()
     selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))    
     h.request('DELETE', selector, '', headers)       
 
   def download_sql_result(self, sql):
     h = httplib.HTTPSConnection(self.HOST)       
-    headers = {}
-    self.set_auth_header(headers)
+    headers = self.set_auth_header()
     selector = "%s/file?sql=%s" % (self.RESTDB, urllib.quote(sql))    
     h.request('GET', selector, '', headers)
     res = h.getresponse()
@@ -266,8 +288,7 @@ Save a query
 
   def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
     h = httplib.HTTPSConnection(self.HOST)        
-    headers = {}
-    self.set_auth_header(headers)
+    headers = self.set_auth_header()
     selector = "/REST.svc/v1/materialize?query_name=%s" % urllib.quote(query_name)
     
     if new_table_name != None:
@@ -285,8 +306,7 @@ Save a query
     
   def execute_sql(self, sql):
     h = httplib.HTTPSConnection(self.HOST)        
-    headers = {}
-    self.set_auth_header(headers)
+    headers = self.set_auth_header()
     selector = "%s?sql=%s" % (self.RESTDB, urllib.quote(sql))    
     h.request('GET', selector, '', headers)
     res = h.getresponse()
@@ -335,8 +355,7 @@ Save a query
   def check_table(self, filename):
     #httplib.HTTPSConnection.debuglevel = 5
     h = httplib.HTTPSConnection(self.HOST)
-    headers = {}
-    self.set_auth_header(headers)
+    headers = self.set_auth_header()
     selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
     h.request('GET', selector, '', headers)
     res = h.getresponse()
@@ -347,6 +366,41 @@ Save a query
         raise SQLShareUploadError("%s: %s" % (res.status, res.read()))
       #debug("%s: %s" % (res.status, res.read()))
       return False
+
+  def get_permissions(self,name):
+    h = httplib.HTTPSConnection(self.HOST)
+    headers = self.set_auth_header()
+    selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(self.schema), urllib.quote(name)) 
+    h.request('GET', selector, '', headers)
+    res = h.getresponse()
+    if res.status > 400:
+      raise SQLShareError("%s: %s" % (res.status, res.read()))
+    return json.loads(res.read())
+
+    """
+Share table with given users
+    """    
+  def set_permissions(self, name, is_public=False, is_shared=False, authorized_viewers=[]):
+    h = httplib.HTTPSConnection(self.HOST)
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+    self.set_auth_header(headers)
+
+    queryobj = {
+      "is_public": is_public,
+      "is_shared": is_shared,
+      "authorized_viewers" : authorized_viewers
+    }
+
+    # permission API is defined in v2
+    selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(self.schema), urllib.quote(name)) 
+    h.request('PUT', selector, json.dumps(queryobj), headers)
+    res = h.getresponse()
+    if res.status == 200: return 'set'
+    else: raise SQLShareError("%s: %s" % (res.status, res.read()))
+
 
 class SQLShareUploadResponse:
   SUCCESS = 200
@@ -428,3 +482,7 @@ def _encode_multipart_formdata(fields, files):
     body = CRLF.join(L)
     content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
     return content_type, body
+
+
+
+

@@ -4,11 +4,12 @@ Upload multiple files to sqlshare
 
 import sys
 import sqlshare
+from optparse import OptionParser
 
 
 """print usage"""
 def usage():
-  cmd = """python %s <username> <password> <file1> <file2> ... <fileN>""" % __file__
+  cmd = """python %s [-u <username> -p <password>] <file1> <file2> ... <fileN>""" % __file__
   exmp = """
 Example:
 python %s armbrustlab <password> *.txt
@@ -24,12 +25,16 @@ def multiupload(exprs,username, password):
       print "Successfully uploaded " + response
 
 def main():
-  if len(sys.argv) < 4:
-    print usage()
-  else:
-    username, password = sys.argv[1:3]
-    exprs = sys.argv[3:]
-    multiupload(exprs, username, password)
+  parser = OptionParser(usage="usage: %prog [options] <file1> <file2> ... <fileN>")
+  parser.add_option('-u', '--user', dest='username', help='SQLshare user name')
+  parser.add_option('-p', '--password', dest='password', help='SQLshare password')
+
+  (options, args) = parser.parse_args()
+
+  if not args:
+    parser.error('no input datafile')
+
+  multiupload(args, options.username, options.password)
 
 if __name__ == '__main__':
   main()
