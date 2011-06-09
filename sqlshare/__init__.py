@@ -157,13 +157,13 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
     for fn,tn in pairs:
       yield self.uploadone(fn,tn)
 
-  def uploadone(self, fn, dataset_name):
+  def uploadone(self, fn, dataset_name, force_append=None, force_column_headers=None):
     f = file(fn)
     first_chunk = True
     for chunk in self.chunksoff(f, self.CHUNKSIZE):        
         print 'processing chunk.. %s' % chunk.count('\n')
         if first_chunk:
-          self.upload_chunk(fn, dataset_name, chunk)
+          self.upload_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
         else:
           self.upload_chunk(fn, dataset_name, chunk, True, False)
         first_chunk = False           
@@ -366,6 +366,19 @@ Save a query
         raise SQLShareUploadError("%s: %s" % (res.status, res.read()))
       #debug("%s: %s" % (res.status, res.read()))
       return False
+
+  def table_exists(self, filename):
+    #httplib.HTTPSConnection.debuglevel = 5
+    h = httplib.HTTPSConnection(self.HOST)
+    headers = self.set_auth_header()
+    selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
+    h.request('GET', selector, '', headers)
+    res = h.getresponse()
+    if res.status == 200:
+      return True
+    elif res.status == 404:
+      return False
+    raise SQLShareUploadError("%s: %s" % (res.status, res.read()))
 
   def get_permissions(self,name):
     h = httplib.HTTPSConnection(self.HOST)
