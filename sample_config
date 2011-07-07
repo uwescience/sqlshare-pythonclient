@@ -1,0 +1,6 @@
+[sqlshare]
+; Default -- sqlshare-rest.cloudapp.net. use sqlshare-rest-test.cloudapp.net until the API key auth feature is released.
+;host=sqlshare-rest.cloudapp.net
+host=sqlshare-rest-test.cloudapp.net
+user=your-sql-share-account-name
+password=your-sql-share-account-key
