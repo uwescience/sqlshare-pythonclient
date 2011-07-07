@@ -1,9 +1,64 @@
 A python client for the SQLShare REST API.
 
-Not complete and partially out of date (read: broken) as of May 2011.
+Documentation pasted here from:
+http://escience.washington.edu/get-help-now/sqlshare-python-api
 
-Test scripts in test/*.sh
+== Source
 
-Ex:
+The SQL Share Python API and clients are under src/python/sqlshare/ in the SVN repository and have following structure.
 
-$ source test/test_save.sh
+    src/python/sqlshare/
+        sqlshare/ : the directory contains python module
+        tools/
+            multiupload.py : upload multiple CSV files
+            permissions.py : manage ACL of SQL share datasets
+
+== Setup
+-- Install API
+
+To use python API, you need to either install the module as site-packages or add the directory that contains python module to PYTHONPATHenvironment variable.
+
+    To install as a site package, use python setup.py just like you install other 3rd party modules.
+    Otherwise, add the path to src/python/sqlshare directory to PYTHONPATH environment variable.
+
+-- Configure Access
+
+    Create a SQL share account: Connect to SQL share web site and sign in using either UW Net ID or Google Account.
+    Create an API key : To use python API, you need to obtain an API key to authenticate your python program. Get API Key.
+    Create a configuration file
+
+-- Configuration File
+
+The python API reads login information from a configuration file.
+
+    create $HOME/.sqlshare directory and place the configuration file config under it.
+    You need your SQL share user name (user), API key (password) retrieved from SQL share web site.
+    host is optional and only useful if you need to access features that are in development/testing.
+    A sample content of config file is as follows.
+
+[sqlshare]
+; Default -- sqlshare-rest.cloudapp.net. use sqlshare-rest-test.cloudapp.net until the API key auth feature is released.
+;host=sqlshare-rest.cloudapp.net
+host=sqlshare-rest-test.cloudapp.net
+user=your-sql-share-account-name
+password=your-sql-share-account-key
+
+== Append CSV files to an existing dataset
+
+python append.py datasetName csvfile1 csvfile2 ... csvfileN
+
+    datasetName is created if the dataset does not exist in SQL share.
+    Each CSV file must have column header in the first line of the file.
+
+== Upload CSV files
+
+Uploading a CSV file is easy
+
+python multiupload.py csvfile1 csvfile2 ... csvfileN
+
+== Manage ACL
+
+python permissions.py -t TABLENAME print
+python permissions.py -t TABLENAME add user1 user2 ... userN
+python permissions.py -t TABLENAME remove user1 user2 ... userN
+
