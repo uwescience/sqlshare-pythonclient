@@ -29,7 +29,10 @@ _DEFAULT_CONFIG = {
 load information from default configuration file ($HOME/.sqlshare/config)
 """
 def _load_conf():
-    config = SafeConfigParser(_DEFAULT_CONFIG)
+    config = SafeConfigParser() #_DEFAULT_CONFIG)
+    config.add_section('sqlshare')
+    config.set('sqlshare', 'host', 'sqlshare-rest.cloudapp.net')
+    config.set('sqlshare', 'chunkSize', str(10*2**20))
     confFile = os.path.expanduser('~/.sqlshare/config')
     if os.path.exists(confFile):
        # load the configuration
@@ -209,7 +212,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
     h.request('GET', selector, '', headers)
     res = h.getresponse()
     if res.status > 400:
-      raise SQLShareError("%s: %s" % (res.status, res.read()))
+      raise SQLShareError("%s: %s %s" % (res.status, res.read(), self.username))
     return json.loads(res.read())
 
 
