@@ -1,9 +1,10 @@
 """
 Fetch data from SQLShare using a SQL query
 """
-
 import sys
 import sqlshare
+import httplib
+httplib.HTTPConnection.debuglevel = 1 
 
 """print usage"""
 def usage():

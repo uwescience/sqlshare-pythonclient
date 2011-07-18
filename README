@@ -3,6 +3,29 @@ A python client for the SQLShare REST API.
 Documentation pasted here from:
 http://escience.washington.edu/get-help-now/sqlshare-python-api
 
+== Overview
+
+1. Download the source and install the API
+
+$ svn co https://subversion.assembla.com/svn/sqlshare/pythonclient
+
+2. Test the connection to the server using an example account by running the following from the source directory:
+
+$ python test/testREST.py
+
+3. Get your own API Key
+
+4. Create $HOME/.sqlshare/config
+
+[sqlshare]
+host=sqlshare-rest.cloudapp.net
+user=your-sql-share-account-name
+password=your-sql-share-account-key
+
+5. Use the command line tools in tools/*, or write your own python programs using these tools as examples.
+
+The remainder of this document provides some additional details.
+
 == Source
 
 The SQL Share Python API and clients are under src/python/sqlshare/ in the SVN repository and have following structure.
