@@ -9,10 +9,8 @@ import stat, mimetypes
 import httplib
 #httplib.HTTPConnection.debuglevel = 1
 import json
-import sys
 import urllib
-import time
-import os
+import sys, os, time
 from ConfigParser import SafeConfigParser
 import getpass
 
@@ -83,9 +81,10 @@ class SQLShare:
     
   def chunksoff(self, f, size):
     print os.path.getsize(f.name)
+    pos = f.tell()
     lines = f.readlines(size)    
     while lines:
-        yield "".join(lines)	 	  
+        yield (pos, ("".join(lines)))
         lines = f.readlines(size)	  
   
 	  
@@ -150,10 +149,10 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
 @param delimiter: (optional default = tab) the character to be a delimiter, or 'tab' to refer to '\t'
   """
   def upload(self, filepath, tablenames=None, hasHeader='true', delimiter='tab'):
-    print "uploading %s into %s" % (filepath, tablenames)
     fnames = [fn for fn in glob.glob(filepath)]
     if not tablenames: 
       tablenames = [os.path.basename(fn) for fn in fnames]
+    print "uploading %s into %s" % (filepath, tablenames)
     pairs = zip(fnames,tablenames)
     # get user info; we need the schema name
 
@@ -163,12 +162,27 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
   def uploadone(self, fn, dataset_name, force_append=None, force_column_headers=None):
     f = file(fn)
     first_chunk = True
-    for chunk in self.chunksoff(f, self.CHUNKSIZE):        
-        print 'processing chunk.. %s' % chunk.count('\n')
-        if first_chunk:
-          self.upload_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
-        else:
-          self.upload_chunk(fn, dataset_name, chunk, True, False)
+    start = time.time()
+    rfn = restartfile(fn) 
+
+    if os.path.exists(rfn):
+      rf = file(rfn)
+      pos = int(rf.read())
+      rf.close()
+      f.seek(pos)
+
+    for pos, chunk in self.chunksoff(f, self.CHUNKSIZE):        
+        print 'processing chunk.. %s (%s s elapsed)' % (chunk.count('\n'), time.time() - start)
+        try:
+          if first_chunk:
+            self.upload_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
+          else:
+            self.upload_chunk(fn, dataset_name, chunk, True, False)
+        except SQLShareError:
+          # record the stopping point in a file
+          f = file(rfn)
+          f.write(pos)
+          f.close()
         first_chunk = False           
 
     print "finished %s" % dataset_name
@@ -183,17 +197,51 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
       print "parsing %s..." % uploadid
       # step 2: get parse information       
       self.poll_selector('%s/v2/file/%s' % (self.REST, uploadid))
-      
-        
+    
+  """
+Get the tags for a given dataset
+  """
+  def get_tags(self, query_name, schema=None):
+    if not schema: schema = self.schema
+    params = (self.REST, urllib.quote(schema), urllib.quote(query_name))
+    selector = "%s/v2/db/dataset/%s/%s/tags" % params
+    return json.loads(self.poll_selector(selector))
 
-  def poll_selector(self, selector):    
+  """
+Set the tags for a given dataset.
+  """
+  def set_tags(self, name, tags):
+    schema = self.schema
+    h = httplib.HTTPSConnection(self.HOST)
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+    self.set_auth_header(headers)
+
+    # type is [(name, [tag])]
+    tagsobj = [{"name" : self.username, "tags" : tags}]
+    params = (self.REST, urllib.quote(schema), urllib.quote(name))
+    selector = "%s/v2/db/dataset/%s/%s/tags" % params
+    h.request('PUT', selector, json.dumps(tagsobj), headers)
+    res = h.getresponse()
+    if res.status == 200: return json.loads(res.read())
+    else: raise SQLShareError("%s: %s" % (res.status, res.read()))
+
+
+  """
+Generic GET method to poll for a response
+  """
+  # TODO: Add a generic PUT, or generalize this method
+  def poll_selector(self, selector, verb = 'GET', returnresponse = False, headers={}):    
     while True:        
         h = httplib.HTTPSConnection(self.HOST)
-        headers = self.set_auth_header()
-        h.request('GET', selector, '', headers)
+        headers.update(self.set_auth_header())
+        h.request(verb, selector, '', headers)
         res = h.getresponse()
         if res.status == 200:
-            return res.read()
+            if returnresponse: return res
+            else: return res.read()
         if res.status == 202:
             time.sleep(0.5)
             continue
@@ -205,17 +253,15 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
     f.write(chunk)
     f.close()
   
+  """
+ Get metadata for a query
+  """
+  # (Why are the tags in a separate API call??)
   def get_userinfo(self):
-    h = httplib.HTTPSConnection(self.HOST)
-    headers = self.set_auth_header()
     selector = '%s/v1/user/%s' % (self.REST, self.username)
-    h.request('GET', selector, '', headers)
-    res = h.getresponse()
-    if res.status > 400:
-      raise SQLShareError("%s: %s %s" % (res.status, res.read(), self.username))
-    return json.loads(res.read())
+    return json.loads(self.poll_selector(selector))
 
-
+  # attempt to generalize table operations--use poll selector instead
   def tableop(self, tableid, operation):
     h = httplib.HTTPSConnection(self.HOST)
     headers = self.set_auth_header()
@@ -228,26 +274,16 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
  Get a list of all queries that are available to user 
   """
   def get_all_queries(self):    
-    h = httplib.HTTPSConnection(self.HOST)    
-    headers = self.set_auth_header()
-    selector = "%s/query" % (self.RESTDB)    
-    h.request('GET', selector, '', headers)
-    res = h.getresponse()
-    if res.status == 200: return json.loads(res.read())
-    else: raise SQLShareError("%s: %s" % (res.status, res.read()))	
+    selector = "%s/query" % (self.RESTDB) 
+    return json.loads(self.poll_selector(selector))
     
   """
 Get meta data about target query, this also includes a cached sampleset of first 200 rows of data
   """
   def get_query(self, schema, query_name):
-    h = httplib.HTTPSConnection(self.HOST)    
-    headers = self.set_auth_header()
-    selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(schema), urllib.quote(query_name))    
-    h.request('GET', selector, '', headers)
-    res = h.getresponse()
-    if res.status == 200: return json.loads(res.read())
-    else: raise SQLShareError("%s: %s" % (res.status, res.read()))	       
-
+    selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(schema), urllib.quote(query_name))
+    return json.loads(self.poll_selector(selector))
+    
   """
 Save a query
   """    
@@ -279,15 +315,13 @@ Save a query
     selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))    
     h.request('DELETE', selector, '', headers)       
 
+  """
+Return the result of a SQL query as delimited text.
+  """
+  # TODO: Need to be able to control the format
   def download_sql_result(self, sql):
-    h = httplib.HTTPSConnection(self.HOST)       
-    headers = self.set_auth_header()
     selector = "%s/file?sql=%s" % (self.RESTDB, urllib.quote(sql))    
-    h.request('GET', selector, '', headers)
-    res = h.getresponse()
-    if res.status == 200: return res.read()
-    else: raise SQLShareError("%s: %s" % (res.status, res.read()))	    
-    
+    return self.poll_selector(selector)
 
   def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
     h = httplib.HTTPSConnection(self.HOST)        
@@ -306,19 +340,22 @@ Save a query
         raise SQLShareError("code: %s : %s" % (res.status, res.read()))
     
     return json.loads(res.read())
-    
-  def execute_sql(self, sql):
+ 
+  """
+Execute a sql query
+  """
+  # What's the difference between this and download_sql_result?   
+  def execute_sql(self, sql, maxrows=700):
     h = httplib.HTTPSConnection(self.HOST)        
     headers = self.set_auth_header()
-    selector = "%s?sql=%s" % (self.RESTDB, urllib.quote(sql))    
+    selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql),maxrows)    
     h.request('GET', selector, '', headers)
     res = h.getresponse()
     if res.status == 202: #accepted
-        location = res.getheader('Location')
-        return json.loads(self.poll_execute_sql(location))
+      location = res.getheader('Location')
+      return json.loads(self.poll_selector(location))
     else:
-        raise SQLShareError("code: %s : %s" % (res.status, res.read()))
-    
+      raise SQLShareError("code: %s : %s" % (res.status, res.read()))
         
   def get_parser(self, tableid):
     resp = SQLShareUploadResponse(self.tableop(tableid, 'parser'))
@@ -328,15 +365,18 @@ Save a query
       resp = SQLShareUploadResponse(self.tableop(tableid, 'parser'))
     return resp.parser    
     
+
+# Garret says:
 # for the most bizzare reason, having the check table function inside of the put_table1 method
 # would freeze upon SSL handshake every single time. But it works when its not being called from
 # within that method
+# Bill says: sounds like a race condition on the server....
   def put_table(self, filename, parser):
     self.put_table1(filename, parser)
-    success = self.check_table(filename)
+    success = self.table_exists(filename)
     while not success:
       time.sleep(0.5)
-      success = self.check_table(filename)
+      success = self.table_exists(filename)
     return True
       
   def put_table1(self, filename, parser):
@@ -355,21 +395,10 @@ Save a query
     if res.status != 200:
       raise SQLShareUploadError("%s: %s" % (res.status, res.read()))     
 
-  def check_table(self, filename):
-    #httplib.HTTPSConnection.debuglevel = 5
-    h = httplib.HTTPSConnection(self.HOST)
-    headers = self.set_auth_header()
-    selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
-    h.request('GET', selector, '', headers)
-    res = h.getresponse()
-    if res.status == 200:
-      return True
-    else:
-      if res.status >= 400:
-        raise SQLShareUploadError("%s: %s" % (res.status, res.read()))
-      #debug("%s: %s" % (res.status, res.read()))
-      return False
-
+  """
+Return true if a table exists
+  """
+  # why is this method here twice?
   def table_exists(self, filename):
     #httplib.HTTPSConnection.debuglevel = 5
     h = httplib.HTTPSConnection(self.HOST)
@@ -383,15 +412,13 @@ Save a query
       return False
     raise SQLShareUploadError("%s: %s" % (res.status, res.read()))
 
-  def get_permissions(self,name):
-    h = httplib.HTTPSConnection(self.HOST)
-    headers = self.set_auth_header()
-    selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(self.schema), urllib.quote(name)) 
-    h.request('GET', selector, '', headers)
-    res = h.getresponse()
-    if res.status > 400:
-      raise SQLShareError("%s: %s" % (res.status, res.read()))
-    return json.loads(res.read())
+  """
+Get the permissions for a given dataset
+  """
+  def get_permissions(self,name,schema=None):
+    if not schema: schema = self.schema
+    selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(schema), urllib.quote(name)) 
+    return json.loads(poll_selector(selector))
 
     """
 Share table with given users
@@ -500,5 +527,6 @@ def _encode_multipart_formdata(fields, files):
     return content_type, body
 
 
-
-
+# construct the name of the restart file for long uploads
+def restartfile(fn):
+  return fn + ".sqlshare.restart"
