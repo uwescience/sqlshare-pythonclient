@@ -17,10 +17,11 @@ import getpass
 def debug(m):
   print m
 
+DEFAULTCHUNKSIZE = 100*2**20 # 100MB (test)
 
 _DEFAULT_CONFIG = {
-    'host': 'sqlshare-rest.cloudapp.net',
-    'chunkSize': str(10*2**20)
+    'host': 'sqlshare-rest-test.cloudapp.net',
+    'chunkSize': str(DEFAULTCHUNKSIZE)
 }
 
 """
@@ -30,7 +31,7 @@ def _load_conf():
     config = SafeConfigParser() #_DEFAULT_CONFIG)
     config.add_section('sqlshare')
     config.set('sqlshare', 'host', 'sqlshare-rest.cloudapp.net')
-    config.set('sqlshare', 'chunkSize', str(10*2**20))
+    config.set('sqlshare', 'chunkSize', str(DEFAULTCHUNKSIZE))
     confFile = os.path.expanduser('~/.sqlshare/config')
     if os.path.exists(confFile):
        # load the configuration
@@ -50,7 +51,7 @@ class SQLShare:
   RESTFILE = REST + "/v2/file"
   RESTDB = REST + "/v1/db"
   RESTDB2 = REST + "/v2/db"
-#  CHUNKSIZE = 10*2**20 # 1MB (test)
+  CHUNKSIZE = DEFAULTCHUNKSIZE 
   ERROR_NUM = 0
   SQLSHARE_SECTION = 'sqlshare'
 
@@ -80,7 +81,6 @@ class SQLShare:
     return header
     
   def chunksoff(self, f, size):
-    print os.path.getsize(f.name)
     pos = f.tell()
     lines = f.readlines(size)    
     while lines:
@@ -97,7 +97,7 @@ Upload a datasheet into Sql
   """
   def post_file(self, filepath, tablename=None, hasHeader='true', delimiter='tab'):
     filename = os.path.basename(filepath)
-    fileobj = file(filepath)
+    fileobj = open(filepath)
     fields = []
     content_type, body = _encode_multipart_formdata_via_chunks(filename, chunk)
 
@@ -118,7 +118,7 @@ Upload a datasheet into Sql
     
   def post_file_chunk(self, filepath, dataset_name, chunk, force_append, force_column_headers):
     filename = os.path.basename(filepath)
-    fileobj = file(filepath)
+    fileobj = open(filepath)
     fields = []
     content_type, body = _encode_multipart_formdata_via_chunks(filename, chunk)
 
@@ -138,8 +138,8 @@ Upload a datasheet into Sql
     h.request('POST', selector, body, headers)
 
     res = h.getresponse()
-    resp_msg = res.read()
-    return resp_msg
+    if res.status == 200: return res.read()
+    else: raise SQLShareError("%s: %s" % (res.status, res.read()))
 
   """
 Upload multiple files to sqlshare.  Assumes all files have the same format.
@@ -160,19 +160,24 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
       yield self.uploadone(fn,tn)
 
   def uploadone(self, fn, dataset_name, force_append=None, force_column_headers=None):
-    f = file(fn)
+    f = open(fn)
     first_chunk = True
     start = time.time()
     rfn = restartfile(fn) 
 
     if os.path.exists(rfn):
-      rf = file(rfn)
-      pos = int(rf.read())
-      rf.close()
-      f.seek(pos)
+      try:
+        rf = open(rfn)
+        pos = int(rf.read())
+        rf.close()
+        f.seek(pos)
+      except:
+        print "Bad restart file %s; ignoring." % rfn
 
+    lines = 0
     for pos, chunk in self.chunksoff(f, self.CHUNKSIZE):        
-        print 'processing chunk.. %s (%s s elapsed)' % (chunk.count('\n'), time.time() - start)
+        print 'processing chunk line %s to %s (%s s elapsed)' % (lines, lines + chunk.count('\n'), time.time() - start)
+        lines += chunk.count('\n')
         try:
           if first_chunk:
             self.upload_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
@@ -180,8 +185,8 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
             self.upload_chunk(fn, dataset_name, chunk, True, False)
         except SQLShareError:
           # record the stopping point in a file
-          f = file(rfn)
-          f.write(pos)
+          f = open(rfn,"w")
+          f.write(str(pos))
           f.close()
         first_chunk = False           
 
@@ -296,17 +301,18 @@ Save a query
     self.set_auth_header(headers)
 
     queryobj = {
+	    "is_public": is_public,
       "description":description,
-      "sql_code":sql,
-	    "is_public": is_public
+      "sql_code":sql
     }
 
     selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(name)) 
     h.request('PUT', selector, json.dumps(queryobj), headers)
     res = h.getresponse()
-    print res
-    if res.status == 200: return 'modified'
-    elif res.status == 201: return 'created' 
+    if res.status == 200: 
+      return 'modified'
+    elif res.status == 201: 
+      return 'created' 
     else: raise SQLShareError("%s: %s" % (res.status, res.read()))
     
   def delete_query(self, query_name):
@@ -386,7 +392,6 @@ Execute a sql query
         'Content-Type': 'application/json',
         'Accept': 'application/json'
     }
-    #print parser
     self.set_auth_header(headers)
     selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
     h.request('PUT', selector, json.dumps(parser), headers)    
@@ -418,7 +423,7 @@ Get the permissions for a given dataset
   def get_permissions(self,name,schema=None):
     if not schema: schema = self.schema
     selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(schema), urllib.quote(name)) 
-    return json.loads(poll_selector(selector))
+    return json.loads(self.poll_selector(selector))
 
     """
 Share table with given users
