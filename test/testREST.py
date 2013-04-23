@@ -8,7 +8,7 @@ import urllib
 # 1) It demonstrates how the python API works under the sheets
 # 2) It can be used to test the REST server when debugging problems
 
-h = httplib.HTTPSConnection("sqlshare-rest.cloudapp.net")
+h = httplib.HTTPSConnection("rest.sqlshare.escience.washington.edu")
 
 headers = {}
 # format is ss_apikey <username> : <apikey>

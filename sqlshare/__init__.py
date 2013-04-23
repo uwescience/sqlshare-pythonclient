@@ -20,7 +20,7 @@ def debug(m):
 DEFAULTCHUNKSIZE = 100*2**20 # 100MB (test)
 
 _DEFAULT_CONFIG = {
-    'host': 'sqlshare-rest-test.cloudapp.net',
+    'host': 'rest.sqlshare.escience.washington.edu',
     'chunkSize': str(DEFAULTCHUNKSIZE)
 }
 
@@ -30,7 +30,7 @@ load information from default configuration file ($HOME/.sqlshare/config)
 def _load_conf():
     config = SafeConfigParser() #_DEFAULT_CONFIG)
     config.add_section('sqlshare')
-    config.set('sqlshare', 'host', 'sqlshare-rest.cloudapp.net')
+    config.set('sqlshare', 'host', 'rest.sqlshare.escience.washington.edu')
     config.set('sqlshare', 'chunkSize', str(DEFAULTCHUNKSIZE))
     confFile = os.path.expanduser('~/.sqlshare/config')
     if os.path.exists(confFile):
@@ -45,8 +45,6 @@ class SQLShareUploadError(SQLShareError):
   pass
 
 class SQLShare:
-#  HOST = "sqlshare-rest.cloudapp.net"# "sqlshare-rest-test.cloudapp.net" #
-#  HOST = "128.208.7.49"# "sqlshare-rest-test.cloudapp.net" #
   REST = "/REST.svc"
   RESTFILE = REST + "/v2/file"
   RESTDB = REST + "/v1/db"

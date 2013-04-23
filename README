@@ -18,7 +18,7 @@ $ python test/testREST.py
 4. Create $HOME/.sqlshare/config
 
 [sqlshare]
-host=sqlshare-rest.cloudapp.net
+host=rest.sqlshare.escience.washington.edu
 user=your-sql-share-account-name
 password=your-sql-share-account-key
 
@@ -60,9 +60,7 @@ The python API reads login information from a configuration file.
     A sample content of config file is as follows.
 
 [sqlshare]
-; Default -- sqlshare-rest.cloudapp.net. use sqlshare-rest-test.cloudapp.net until the API key auth feature is released.
-;host=sqlshare-rest.cloudapp.net
-host=sqlshare-rest-test.cloudapp.net
+host=rest.sqlshare.escience.washington.edu
 user=your-sql-share-account-name
 password=your-sql-share-account-key
 
