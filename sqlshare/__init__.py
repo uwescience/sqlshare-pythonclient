@@ -323,8 +323,8 @@ Save a query
 Return the result of a SQL query as delimited text.
   """
   # TODO: Need to be able to control the format
-  def download_sql_result(self, sql):
-    selector = "%s/file?sql=%s" % (self.RESTDB, urllib.quote(sql))    
+  def download_sql_result(self, sql, format='csv'):
+    selector = "%s/file?sql=%s&format=%s" % (self.RESTDB, urllib.quote(sql), format)    
     return self.poll_selector(selector)
 
   def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
