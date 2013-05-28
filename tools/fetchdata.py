@@ -9,7 +9,7 @@ import sqlshare
 import sys
 
 # Debugging
-httplib.HTTPConnection.debuglevel = 1 
+httplib.HTTPConnection.debuglevel = 0 
 
 """print usage"""
 def usage():
