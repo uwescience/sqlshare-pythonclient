@@ -55,7 +55,7 @@ To use the Python API, you need to either 1) install the module as a Python libr
     
    From the cloned `sqlshare-pythonclient` directory:
     
-       export PYTHONPATH=$PYTHONPATH:`pwd`
+        export PYTHONPATH=$PYTHONPATH:`pwd`
 
 ## Configuring your SQLShare API Key
 
