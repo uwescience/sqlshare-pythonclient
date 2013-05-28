@@ -8,17 +8,17 @@ http://escience.washington.edu/get-help-now/sqlshare-python-api
 
 1. Download the source and install the API
 
-       git clone git://github.com/uwescience/sqlshare-pythonclient.git
+        git clone git://github.com/uwescience/sqlshare-pythonclient.git
 
 2. Install the Python libraries.
 
-       sudo python setup.py install
+        sudo python setup.py install
 
 3. Make sure your own API key is configured in `$HOME/.sqlshare/config`
 
-       [sqlshare]
-       user=your-sql-share-account-name
-       password=your-sql-share-account-key
+        [sqlshare]
+        user=your-sql-share-account-name
+        password=your-sql-share-account-key
        
 4. Use the command line tools in `tools/*`, or write your own Python programs using these tools as examples.
 
@@ -47,7 +47,7 @@ To use the Python API, you need to either 1) install the module as a Python libr
 
 1. To install as a Python module, use `python setup.py` just like you install other 3rd party modules.
 
-       python setup.py install
+        python setup.py install
        
    If the above does not work, you may need to use `sudo python setup.py install` to install the code as a user with the right to modify system files.
    
