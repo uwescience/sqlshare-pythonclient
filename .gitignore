@@ -1,0 +1,4 @@
+SQLShare.egg-info
+build
+dist
+*.pyc
