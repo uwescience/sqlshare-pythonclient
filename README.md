@@ -139,3 +139,27 @@ Uploading a CSV file is easy
 
 * `datasetName` is created if the dataset does not exist in SQLShare.
 * Each CSV file must have column header in the first line of the file.
+
+# Troubleshooting
+
+### NotImplementedError: fetchdata.py requires Python 2.7 or later.
+
+If you see this error message, you are using an old version of Python.
+
+Let's see if you have a newer version of Python on your computer:
+
+    python2.7 --version
+
+a. If this check works, you will see a message like
+    
+        Python 2.7.5
+    
+   In this case, all you need to do is invoke the tool using `python2.7 fetchdata.py` instead of `python fetchdata.py`.
+
+b. If this check fails, you need to [download and install Python 2.7](http://www.python.org/download/) for your computer. At the time of writing, the latest version is Python 2.7.5.
+
+   After you download and install Python 2.7 or later, try the above check again. You should be good to go!
+   
+### Troubleshooting other problems
+
+Please [create a new issue](https://github.com/uwescience/sqlshare-pythonclient/issues/new) in this project's issues tracker. Try to describe the problem in as much detail as possible, and someone will get back to you soon.
