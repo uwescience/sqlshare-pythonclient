@@ -63,7 +63,7 @@ From the cloned `sqlshare-pythonclient` or unzipped `sqlshare-pythonclient-maste
         
 You will need this command to be run every time you open a terminal. The way to do this in an OS X/Linux environment is to install this command in your `profile` file. For example, on OS X, you need to put this line in the file `$HOME/.bash_profile`.
 
-        echo 'export PYTHONPATH=$PYTHONPATH:`pwd`' >> ~/.bash_profile
+        echo 'export PYTHONPATH=$PYTHONPATH':`pwd` >> ~/.bash_profile
 
 ## Configuring your SQLShare API Key
 
