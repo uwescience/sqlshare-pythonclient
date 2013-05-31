@@ -1,10 +1,9 @@
 A Python client for the SQLShare REST API.
 ==========================================
 
-Documentation pasted here from:
-http://escience.washington.edu/get-help-now/sqlshare-python-api
+# Quick Setup Instructions
 
-# Overview: getting started
+These quick instructions are provided for experts comfortable with the command-line environments and open-source tools. For more detailed instructions, see [below](#setup-instructions).
 
 1. Download the source and install the API
 
@@ -24,38 +23,47 @@ http://escience.washington.edu/get-help-now/sqlshare-python-api
 
 The remainder of this document provides some additional details.
 
-# The source code
-
-The SQL Share Python API and clients are under src/python/sqlshare/ in the SVN repository and have following structure.
-
-    sqlshare/ : the directory contains the Python module code
-    tools/
-          fetchdata.py   : download a dataset or the answer to a SQL query
-          multiupload.py : upload multiple CSV files
-          permissions.py : manage ACL of SQL share datasets
-
-# Setup
+# Setup Instructions
 ## Download the code
 
-The SQLShare Python API code is stored on GitHub.
+### Option 1: Download the raw source code
+The SQLShare Python API code is stored on GitHub. To check it out, use `git`.
 
-       git clone git://github.com/uwescience/sqlshare-pythonclient.git
+        git clone git://github.com/uwescience/sqlshare-pythonclient.git
+       
+Now switch to the directory containing the code for further steps.
+
+        cd sqlshare-pythonclient
+
+### Option 2: Download a zip file of the source
+
+You can download a zip of the code from [this link](https://github.com/uwescience/sqlshare-pythonclient/archive/master.zip). After unzipping it, open a command-line terminal in the newly unzipped directory `sqlshare-pythonclient-master`.
+
+For example, if the file unzipped to your `Downloads` directory on OS X:
+
+        cd ~/Downloads/sqlshare-pythonclient-master
 
 ## Install the SQLShare Python library
 
 To use the Python API, you need to either 1) install the module as a Python library or 2) add the directory that contains the Python module to the `PYTHONPATH` environment variable.
 
-1. To install as a Python module, use `python setup.py` just like you install other 3rd party modules.
+### Option 1: Install the Python module system-wide
+
+To install as a Python module, use `python setup.py` just like you install other 3rd party modules.
 
         python setup.py install
        
-   If the above does not work, you may need to use `sudo python setup.py install` to install the code as a user with the right to modify system files.
+If the above does not work, you may need to use `sudo python setup.py install` to install the code as a user with the right to modify system files.
    
-2. Otherwise, add the path to the Python code to the `PYTHONPATH` environment variable.
+### Option 2. Put the Python module in your `PYTHONPATH` environment variable.
     
-   From the cloned `sqlshare-pythonclient` directory:
+From the cloned `sqlshare-pythonclient` or unzipped `sqlshare-pythonclient-master` directory:
     
         export PYTHONPATH=$PYTHONPATH:`pwd`
+        
+You will need this command to be run every time you open a terminal. The way to do this in an OS X/Linux environment is to install this command in your `profile` file. For example, on OS X, you need to put this line in the file `$HOME/.bash_profile`.
+
+        echo 'export PYTHONPATH=$PYTHONPATH:`pwd`' >> ~/.bash_profile
 
 ## Configuring your SQLShare API Key
 
@@ -69,13 +77,29 @@ To obtain or create your API key, visit [https://sqlshare.escience.washington.ed
 
 ### Create the API key configuration File
 
-The Python API reads login information from a configuration file, stored in your home directory at `$HOME/.sqlshare/config`. A sample content of config file:
+The Python API reads login information from a configuration file, stored in your home directory at `$HOME/.sqlshare/config`.
 
-    [sqlshare]
-    user=your-sql-share-account-name
-    password=your-sql-share-API-key
+1. Create the directory
+
+        mkdir -p $HOME/.sqlshare
+        
+2. Here is a sample of the text that should be in the file `config` in that directory (`$HOME/.sqlshare/config`).
+
+        [sqlshare]
+        user=your-sql-share-account-name
+        password=your-sql-share-API-key
 
 Note that password is your API key, not your UW NetID or Google Account password.
+
+# The source code
+
+The SQL Share Python API and clients are under src/python/sqlshare/ in the SVN repository and have following structure.
+
+    sqlshare/ : the directory contains the Python module code
+    tools/
+          fetchdata.py   : download a dataset or the answer to a SQL query
+          multiupload.py : upload multiple CSV files
+          permissions.py : manage ACL of SQL share datasets
 
 # Example uses
 
