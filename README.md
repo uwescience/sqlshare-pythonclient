@@ -142,9 +142,9 @@ Uploading a CSV file is easy
 
 # Troubleshooting
 
-### NotImplementedError: fetchdata.py requires Python 2.7 or later.
+### NotImplementedError: fetchdata.py requires Python 2.7.
 
-If you see this error message, you are using an old version of Python.
+If you see this error message, you are using an old version of Python. This tool requires Python 2.7. (_Note_: This is shorthand for Python 2.7.**anything** --- as long as the first two numbers are 2.7. At the time of writing, the newest version is 2.7.5)
 
 Let's see if you have a newer version of Python on your computer:
 
@@ -158,7 +158,7 @@ a. If this check works, you will see a message like
 
 b. If this check fails, you need to [download and install Python 2.7](http://www.python.org/download/) for your computer. At the time of writing, the latest version is Python 2.7.5.
 
-   After you download and install Python 2.7 or later, try the above check again. You should be good to go!
+   After you download and install Python 2.7, try the above check again. You should be good to go!
    
 ### Troubleshooting other problems
 
