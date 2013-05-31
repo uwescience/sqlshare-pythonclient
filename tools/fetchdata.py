@@ -3,13 +3,10 @@
 """
 Fetch data from SQLShare using a SQL query
 """
-try:
-  import argparse
-  import httplib
-  import sqlshare
-  import sys
-except ImportError:
-  raise NotImplementedError("fetchdata.py requires Python 2.7 or later.")
+import argparse
+import httplib
+import sqlshare
+import sys
 
 # Debugging
 httplib.HTTPConnection.debuglevel = 0 
