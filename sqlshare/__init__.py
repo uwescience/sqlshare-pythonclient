@@ -17,6 +17,12 @@ import getpass
 def debug(m):
   print m
 
+def warn(m):
+  print >> sys.stderr, m
+
+def error(m):
+  raise RuntimeError(m)
+
 DEFAULTCHUNKSIZE = 100*2**20 # 100MB (test)
 
 """
@@ -31,6 +37,8 @@ def _load_conf():
     if os.path.exists(confFile):
        # load the configuration
        config.read(confFile)
+    else:
+       error("SQLShare configuration file not found at: %s" % confFile)
     return config
 
 class SQLShareError(ValueError):
