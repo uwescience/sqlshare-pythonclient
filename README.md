@@ -13,12 +13,16 @@ These quick instructions are provided for experts comfortable with the command-l
 
         sudo python setup.py install
 
-3. Make sure your own API key is configured in `$HOME/.sqlshare/config`
+3. Make sure your own API key is configured in your home directory, in the file `.sqlshare/config`.
+
+    On Mac or Linux platforms, you can create the directory: `mkdir -p ~/.sqlshare`.
+    
+    Then create a file called `config` in that directory using your favorite editor (e.g., `vim ~/.sqlshare/config`) with the following contents:
 
         [sqlshare]
         user=your-sql-share-account-name
         password=your-sql-share-account-key
-       
+             
 4. Use the command line tools in `tools/*`, or write your own Python programs using these tools as examples.
 
 The remainder of this document provides some additional details.
