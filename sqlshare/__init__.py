@@ -1,7 +1,7 @@
 """
 Python interface to SQLShare
 
-G. Cole and B. Howe
+G. Cole and B. Howe and D. Halperin
 """
 import os.path, tempfile
 import glob
@@ -19,16 +19,11 @@ def debug(m):
 
 DEFAULTCHUNKSIZE = 100*2**20 # 100MB (test)
 
-_DEFAULT_CONFIG = {
-    'host': 'rest.sqlshare.escience.washington.edu',
-    'chunkSize': str(DEFAULTCHUNKSIZE)
-}
-
 """
 load information from default configuration file ($HOME/.sqlshare/config)
 """
 def _load_conf():
-    config = SafeConfigParser() #_DEFAULT_CONFIG)
+    config = SafeConfigParser()
     config.add_section('sqlshare')
     config.set('sqlshare', 'host', 'rest.sqlshare.escience.washington.edu')
     config.set('sqlshare', 'chunkSize', str(DEFAULTCHUNKSIZE))
