@@ -89,15 +89,10 @@ class SQLShare:
 
     """
 Upload a datasheet into Sql
-@param tablename: the tablename that should be created on this datafile.    Defaults to filename.
 @param fileobj: file-like object to upload
-@param hasHeader: (optional default = true) STRING 'true' or 'false' if the document has a header
-@param delimiter: (optional default = tab) the character to be a delimiter, or 'tab' to refer to '\t'
     """
-    def post_file(self, filepath, tablename=None, hasHeader='true', delimiter='tab'):
+    def post_file(self, filepath):
         filename = os.path.basename(filepath)
-        fileobj = open(filepath)
-        fields = []
         content_type, body = _encode_multipart_formdata_via_chunks(filename, chunk)
 
         h = httplib.HTTPSConnection(self.HOST)
@@ -117,8 +112,6 @@ Upload a datasheet into Sql
 
     def post_file_chunk(self, filepath, dataset_name, chunk, force_append, force_column_headers):
         filename = os.path.basename(filepath)
-        fileobj = open(filepath)
-        fields = []
         content_type, body = _encode_multipart_formdata_via_chunks(filename, chunk)
 
         h = httplib.HTTPSConnection(self.HOST)
@@ -144,10 +137,8 @@ Upload a datasheet into Sql
 Upload multiple files to sqlshare.    Assumes all files have the same format.
 @param tablename: the tablename that should be created on this datafile
 @param filepath: location to the file to be uploaded
-@param hasHeader: (optional default = true) STRING 'true' or 'false' if the document has a header
-@param delimiter: (optional default = tab) the character to be a delimiter, or 'tab' to refer to '\t'
     """
-    def upload(self, filepath, tablenames=None, hasHeader='true', delimiter='tab'):
+    def upload(self, filepath, tablenames=None):
         fnames = [fn for fn in glob.glob(filepath)]
         if not tablenames:
             tablenames = [os.path.basename(fn) for fn in fnames]
@@ -482,7 +473,6 @@ def _encode_multipart_formdata_via_chunks(filename, chunk):
     BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
     CRLF = '\r\n'
     L = []
-    file_size = len(chunk)
     contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
     L.append('--%s' % BOUNDARY)
     # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key,filename))
@@ -513,7 +503,6 @@ def _encode_multipart_formdata(fields, files):
         L.append('')
         L.append(value)
     for (tablename, fd) in files:
-        file_size = os.fstat(fd.fileno())[stat.ST_SIZE]
         filename = os.path.basename(fd.name) #fd.name.split('/')[-1]
         #filename = filename.split('\\')[-1]
         contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
