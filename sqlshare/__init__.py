@@ -50,7 +50,7 @@ class SQLShare:
   RESTFILE = REST + "/v2/file"
   RESTDB = REST + "/v1/db"
   RESTDB2 = REST + "/v2/db"
-  CHUNKSIZE = DEFAULTCHUNKSIZE 
+  CHUNKSIZE = DEFAULTCHUNKSIZE
   ERROR_NUM = 0
   SQLSHARE_SECTION = 'sqlshare'
 
@@ -78,17 +78,17 @@ class SQLShare:
   def set_auth_header(self, header = {}):
     header['Authorization'] = 'ss_apikey ' + self.username + ' : ' + self.password
     return header
-    
+
   def chunksoff(self, f, size):
     pos = f.tell()
-    lines = f.readlines(size)    
+    lines = f.readlines(size)
     while lines:
         yield (pos, ("".join(lines)))
-        lines = f.readlines(size)	  
-  
-	  
+        lines = f.readlines(size)
+
+
   """
-Upload a datasheet into Sql 
+Upload a datasheet into Sql
 @param tablename: the tablename that should be created on this datafile.  Defaults to filename.
 @param fileobj: file-like object to upload
 @param hasHeader: (optional default = true) STRING 'true' or 'false' if the document has a header
@@ -113,8 +113,8 @@ Upload a datasheet into Sql
     res = h.getresponse()
     resp_msg = res.read()
     return resp_msg
-    
-    
+
+
   def post_file_chunk(self, filepath, dataset_name, chunk, force_append, force_column_headers):
     filename = os.path.basename(filepath)
     fileobj = open(filepath)
@@ -124,8 +124,8 @@ Upload a datasheet into Sql
     h = httplib.HTTPSConnection(self.HOST)
     headers = {
       'User-Agent': 'python_multipart_caller',
-      'Content-Type': content_type,      
-    }    
+      'Content-Type': content_type,
+    }
     self.set_auth_header(headers)
 
     selector = self.RESTFILE + '?dataset=' + urllib.quote(dataset_name)
@@ -133,7 +133,7 @@ Upload a datasheet into Sql
         selector += '&force_append=%s' % force_append
     if force_column_headers != None:
         selector += '&force_column_headers=%s' % force_column_headers
-    
+
     h.request('POST', selector, body, headers)
 
     res = h.getresponse()
@@ -149,7 +149,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
   """
   def upload(self, filepath, tablenames=None, hasHeader='true', delimiter='tab'):
     fnames = [fn for fn in glob.glob(filepath)]
-    if not tablenames: 
+    if not tablenames:
       tablenames = [os.path.basename(fn) for fn in fnames]
     print "uploading %s into %s" % (filepath, tablenames)
     pairs = zip(fnames,tablenames)
@@ -162,7 +162,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
     f = open(fn)
     first_chunk = True
     start = time.time()
-    rfn = restartfile(fn) 
+    rfn = restartfile(fn)
 
     if os.path.exists(rfn):
       try:
@@ -174,7 +174,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
         print "Bad restart file %s; ignoring." % rfn
 
     lines = 0
-    for pos, chunk in self.chunksoff(f, self.CHUNKSIZE):        
+    for pos, chunk in self.chunksoff(f, self.CHUNKSIZE):
         print 'processing chunk line %s to %s (%s s elapsed)' % (lines, lines + chunk.count('\n'), time.time() - start)
         lines += chunk.count('\n')
         try:
@@ -187,21 +187,21 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
           f = open(rfn,"w")
           f.write(str(pos))
           f.close()
-        first_chunk = False           
+        first_chunk = False
 
     print "finished %s" % dataset_name
     return dataset_name
-  
+
   def upload_chunk(self, fn, dataset_name, chunk, force_append=None, force_column_headers=None):
       print "pushing %s..." % fn
       # step 1: push file
-      jsonuploadid = self.post_file_chunk(fn, dataset_name, chunk, force_append, force_column_headers) 
+      jsonuploadid = self.post_file_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
       uploadid = json.loads(jsonuploadid)
-   
+
       print "parsing %s..." % uploadid
-      # step 2: get parse information       
+      # step 2: get parse information
       self.poll_selector('%s/v2/file/%s' % (self.REST, uploadid))
-    
+
   """
 Get the tags for a given dataset
   """
@@ -237,8 +237,8 @@ Set the tags for a given dataset.
 Generic GET method to poll for a response
   """
   # TODO: Add a generic PUT, or generalize this method
-  def poll_selector(self, selector, verb = 'GET', returnresponse = False, headers={}):    
-    while True:        
+  def poll_selector(self, selector, verb = 'GET', returnresponse = False, headers={}):
+    while True:
         h = httplib.HTTPSConnection(self.HOST)
         headers.update(self.set_auth_header())
         h.request(verb, selector, '', headers)
@@ -249,14 +249,14 @@ Generic GET method to poll for a response
         if res.status == 202:
             time.sleep(0.5)
             continue
-        else: 
+        else:
             raise SQLShareError("code: %s : %s" % (res.status, res.read()))
 
   def write_error_out(self, chunk):
     f = open("error_set_%s" % self.ERROR_NUM, 'w')
     f.write(chunk)
     f.close()
-  
+
   """
  Get metadata for a query
   """
@@ -275,22 +275,22 @@ Generic GET method to poll for a response
     return res
 
   """
- Get a list of all queries that are available to user 
+ Get a list of all queries that are available to user
   """
-  def get_all_queries(self):    
-    selector = "%s/query" % (self.RESTDB) 
+  def get_all_queries(self):
+    selector = "%s/query" % (self.RESTDB)
     return json.loads(self.poll_selector(selector))
-    
+
   """
 Get meta data about target query, this also includes a cached sampleset of first 200 rows of data
   """
   def get_query(self, schema, query_name):
     selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(schema), urllib.quote(query_name))
     return json.loads(self.poll_selector(selector))
-    
+
   """
 Save a query
-  """    
+  """
   def save_query(self, sql, name, description, is_public=False):
     h = httplib.HTTPSConnection(self.HOST)
     headers = {
@@ -305,55 +305,55 @@ Save a query
       "sql_code":sql
     }
 
-    selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(name)) 
+    selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(name))
     h.request('PUT', selector, json.dumps(queryobj), headers)
     res = h.getresponse()
-    if res.status == 200: 
+    if res.status == 200:
       return 'modified'
-    elif res.status == 201: 
-      return 'created' 
+    elif res.status == 201:
+      return 'created'
     else: raise SQLShareError("%s: %s" % (res.status, res.read()))
-    
+
   def delete_query(self, query_name):
-    h = httplib.HTTPSConnection(self.HOST)    
+    h = httplib.HTTPSConnection(self.HOST)
     headers = self.set_auth_header()
-    selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))    
-    h.request('DELETE', selector, '', headers)       
+    selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))
+    h.request('DELETE', selector, '', headers)
 
   """
 Return the result of a SQL query as delimited text.
   """
   # TODO: Need to be able to control the format
   def download_sql_result(self, sql, format='csv'):
-    selector = "%s/file?sql=%s&format=%s" % (self.RESTDB, urllib.quote(sql), format)    
+    selector = "%s/file?sql=%s&format=%s" % (self.RESTDB, urllib.quote(sql), format)
     return self.poll_selector(selector)
 
   def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
-    h = httplib.HTTPSConnection(self.HOST)        
+    h = httplib.HTTPSConnection(self.HOST)
     headers = self.set_auth_header()
     selector = "/REST.svc/v1/materialize?query_name=%s" % urllib.quote(query_name)
-    
+
     if new_table_name != None:
         selector += '&table_name=%s' % urllib.quote(new_table_name)
-        
+
     if new_query_name != None:
         selector += '&new_query_name=%s' % urllib.quote(new_query_name)
-        
+
     h.request('GET', selector, '', headers)
     res = h.getresponse()
     if res.status >= 400:
         raise SQLShareError("code: %s : %s" % (res.status, res.read()))
-    
+
     return json.loads(res.read())
- 
+
   """
 Execute a sql query
   """
-  # What's the difference between this and download_sql_result?   
+  # What's the difference between this and download_sql_result?
   def execute_sql(self, sql, maxrows=700):
-    h = httplib.HTTPSConnection(self.HOST)        
+    h = httplib.HTTPSConnection(self.HOST)
     headers = self.set_auth_header()
-    selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql),maxrows)    
+    selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql),maxrows)
     h.request('GET', selector, '', headers)
     res = h.getresponse()
     if res.status == 202: #accepted
@@ -361,15 +361,15 @@ Execute a sql query
       return json.loads(self.poll_selector(location))
     else:
       raise SQLShareError("code: %s : %s" % (res.status, res.read()))
-        
+
   def get_parser(self, tableid):
     resp = SQLShareUploadResponse(self.tableop(tableid, 'parser'))
     while (not resp.done()):
       if resp.failed():
         raise ValueError("%s: %s" % resp.error)
       resp = SQLShareUploadResponse(self.tableop(tableid, 'parser'))
-    return resp.parser    
-    
+    return resp.parser
+
 
 # Garret says:
 # for the most bizzare reason, having the check table function inside of the put_table1 method
@@ -383,7 +383,7 @@ Execute a sql query
       time.sleep(0.5)
       success = self.table_exists(filename)
     return True
-      
+
   def put_table1(self, filename, parser):
    # httplib.HTTPSConnection.debuglevel = 5
     h = httplib.HTTPSConnection(self.HOST)
@@ -393,11 +393,11 @@ Execute a sql query
     }
     self.set_auth_header(headers)
     selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
-    h.request('PUT', selector, json.dumps(parser), headers)    
+    h.request('PUT', selector, json.dumps(parser), headers)
     res = h.getresponse()
-    time.sleep(0.3)    
+    time.sleep(0.3)
     if res.status != 200:
-      raise SQLShareUploadError("%s: %s" % (res.status, res.read()))     
+      raise SQLShareUploadError("%s: %s" % (res.status, res.read()))
 
   """
 Return true if a table exists
@@ -421,12 +421,12 @@ Get the permissions for a given dataset
   """
   def get_permissions(self,name,schema=None):
     if not schema: schema = self.schema
-    selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(schema), urllib.quote(name)) 
+    selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(schema), urllib.quote(name))
     return json.loads(self.poll_selector(selector))
 
     """
 Share table with given users
-    """    
+    """
   def set_permissions(self, name, is_public=False, is_shared=False, authorized_viewers=[]):
     h = httplib.HTTPSConnection(self.HOST)
     headers = {
@@ -442,7 +442,7 @@ Share table with given users
     }
 
     # permission API is defined in v2
-    selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(self.schema), urllib.quote(name)) 
+    selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(self.schema), urllib.quote(name))
     h.request('PUT', selector, json.dumps(queryobj), headers)
     res = h.getresponse()
     if res.status == 200: return 'set'
@@ -466,7 +466,7 @@ class SQLShareUploadResponse:
       raise SQLShareUploadError("%s: %s" % self.error)
     if self.code == self.ACCEPTED:
       pass
-     
+
   def done(self):
     return self.code != self.ACCEPTED
 
@@ -481,13 +481,13 @@ def _encode_multipart_formdata_via_chunks(filename, chunk):
 
     BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
     CRLF = '\r\n'
-    L = []            
-    file_size = len(chunk)    
+    L = []
+    file_size = len(chunk)
     contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-    L.append('--%s' % BOUNDARY)    
+    L.append('--%s' % BOUNDARY)
     # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key,filename))
     L.append('Content-Disposition: form-data; name="file1"; filename="%s"' % filename)
-    L.append('Content-Type: %s' % contenttype)    
+    L.append('Content-Type: %s' % contenttype)
     L.append('\r\n' + chunk)
     L.append('--' + BOUNDARY + '--')
     L.append('')
@@ -495,7 +495,7 @@ def _encode_multipart_formdata_via_chunks(filename, chunk):
     content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
     return content_type, body
 
-    
+
     """
 Utility for formatting form data
 @return: (content_type, body) ready for httplib.HTTP instance
