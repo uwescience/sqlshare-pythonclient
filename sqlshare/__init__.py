@@ -2,7 +2,11 @@
 """
 Python interface to SQLShare
 
-G. Cole and B. Howe
+G. Cole and B. Howe and D. Halperin
+
+CHANGELOG:
+    2013-07-16: dhalperi - update code to user newer APIs
+                         - update code to pass more of pylint's checks
 """
 import os.path, tempfile
 import glob
@@ -47,9 +51,8 @@ class SQLShare:
     RESTDB2 = REST + "/v2/db"
     CHUNKSIZE = DEFAULTCHUNKSIZE
     ERROR_NUM = 0
-    SQLSHARE_SECTION = 'sqlshare'
 
-    def __init__(self, username = None, password = None):
+    def __init__(self, username=None, password=None):
         """
         @param username: sql share username
         @param password: sql share username's password
@@ -212,7 +215,7 @@ class SQLShare:
 
 
     # TODO: Add a generic PUT, or generalize this method
-    def poll_selector(self, selector, verb = 'GET', returnresponse = False,
+    def poll_selector(self, selector, verb='GET', returnresponse=False,
             headers=None):
         """
         Generic GET method to poll for a response
