@@ -18,18 +18,13 @@ import getpass
 def debug(m):
     print m
 
-DEFAULTCHUNKSIZE = 100*2**20 # 100MB (test)
-
-_DEFAULT_CONFIG = {
-        'host': 'rest.sqlshare.escience.washington.edu',
-        'chunkSize': str(DEFAULTCHUNKSIZE)
-}
+DEFAULTCHUNKSIZE = 100 * (2**20) # 100MB (test)
 
 def _load_conf():
     """
     load information from default configuration file ($HOME/.sqlshare/config)
     """
-    config = SafeConfigParser() #_DEFAULT_CONFIG)
+    config = SafeConfigParser()
     config.add_section('sqlshare')
     config.set('sqlshare', 'host', 'rest.sqlshare.escience.washington.edu')
     config.set('sqlshare', 'chunkSize', str(DEFAULTCHUNKSIZE))
