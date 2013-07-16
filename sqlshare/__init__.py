@@ -77,7 +77,8 @@ class SQLShare:
     def set_auth_header(self, header=None):
         if header is None:
             header = {}
-        header['Authorization'] = 'ss_apikey ' + self.username + ' : ' + self.password
+        header['Authorization'] = 'ss_apikey %s:%s' % \
+                (self.username, self.password)
         return header
 
     def chunksoff(self, f, size):
@@ -88,9 +89,11 @@ class SQLShare:
             lines = f.readlines(size)
 
 
-    def post_file_chunk(self, filepath, dataset_name, chunk, force_append, force_column_headers):
+    def post_file_chunk(self, filepath, dataset_name, chunk, force_append,
+            force_column_headers):
         filename = os.path.basename(filepath)
-        content_type, body = _encode_multipart_formdata_via_chunks(filename, chunk)
+        content_type, body = _encode_multipart_formdata_via_chunks(filename,
+                chunk)
 
         h = httplib.HTTPSConnection(self.HOST)
         headers = {
@@ -130,7 +133,8 @@ class SQLShare:
         for fn, tn in pairs:
             yield self.uploadone(fn, tn)
 
-    def uploadone(self, fn, dataset_name, force_append=None, force_column_headers=None):
+    def uploadone(self, fn, dataset_name, force_append=None,
+            force_column_headers=None):
         f = open(fn)
         first_chunk = True
         start = time.time()
@@ -147,11 +151,13 @@ class SQLShare:
 
         lines = 0
         for pos, chunk in self.chunksoff(f, self.CHUNKSIZE):
-            print 'processing chunk line %s to %s (%s s elapsed)' % (lines, lines + chunk.count('\n'), time.time() - start)
+            print 'processing chunk line %s to %s (%s s elapsed)' % \
+                    (lines, lines + chunk.count('\n'), time.time() - start)
             lines += chunk.count('\n')
             try:
                 if first_chunk:
-                    self.upload_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
+                    self.upload_chunk(fn, dataset_name, chunk, force_append,
+                            force_column_headers)
                 else:
                     self.upload_chunk(fn, dataset_name, chunk, True, False)
             except SQLShareError:
@@ -164,10 +170,12 @@ class SQLShare:
         print "finished %s" % dataset_name
         return dataset_name
 
-    def upload_chunk(self, fn, dataset_name, chunk, force_append=None, force_column_headers=None):
+    def upload_chunk(self, fn, dataset_name, chunk, force_append=None,
+            force_column_headers=None):
         print "pushing %s..." % fn
         # step 1: push file
-        jsonuploadid = self.post_file_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
+        jsonuploadid = self.post_file_chunk(fn, dataset_name, chunk,
+                force_append, force_column_headers)
         uploadid = json.loads(jsonuploadid)
 
         print "parsing %s..." % uploadid
@@ -209,7 +217,8 @@ class SQLShare:
 
 
     # TODO: Add a generic PUT, or generalize this method
-    def poll_selector(self, selector, verb = 'GET', returnresponse = False, headers=None):
+    def poll_selector(self, selector, verb = 'GET', returnresponse = False,
+            headers=None):
         """
         Generic GET method to poll for a response
         """
@@ -248,7 +257,8 @@ class SQLShare:
     def tableop(self, tableid, operation):
         h = httplib.HTTPSConnection(self.HOST)
         headers = self.set_auth_header()
-        selector = '%s/%s/%s' % (self.RESTFILE, urllib.quote(tableid), operation)
+        selector = '%s/%s/%s' % (self.RESTFILE, urllib.quote(tableid),
+                operation)
         h.request('GET', selector, '', headers)
         res = h.getresponse()
         return res
@@ -265,7 +275,8 @@ class SQLShare:
         Get meta data about target query, this also includes a cached sampleset
         of first 200 rows of data
         """
-        selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(schema), urllib.quote(query_name))
+        selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(schema),
+                urllib.quote(query_name))
         return json.loads(self.poll_selector(selector))
 
     def save_query(self, sql, name, description, is_public=False):
@@ -285,7 +296,8 @@ class SQLShare:
             "sql_code":sql
         }
 
-        selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(name))
+        selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema),
+                urllib.quote(name))
         h.request('PUT', selector, json.dumps(queryobj), headers)
         res = h.getresponse()
         if res.status == 200:
@@ -298,20 +310,24 @@ class SQLShare:
     def delete_query(self, query_name):
         h = httplib.HTTPSConnection(self.HOST)
         headers = self.set_auth_header()
-        selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))
+        selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema),
+                urllib.quote(query_name))
         h.request('DELETE', selector, '', headers)
 
     def download_sql_result(self, sql, file_format='csv'):
         """
         Return the result of a SQL query as delimited text.
         """
-        selector = "%s/file?sql=%s&format=%s" % (self.RESTDB, urllib.quote(sql), file_format)
+        selector = "%s/file?sql=%s&format=%s" % (self.RESTDB,
+                urllib.quote(sql), file_format)
         return self.poll_selector(selector)
 
-    def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
+    def materialize_table(self, query_name, new_table_name=None,
+            new_query_name=None):
         h = httplib.HTTPSConnection(self.HOST)
         headers = self.set_auth_header()
-        selector = "/REST.svc/v1/materialize?query_name=%s" % urllib.quote(query_name)
+        selector = "/REST.svc/v1/materialize?query_name=%s" % \
+                urllib.quote(query_name)
 
         if new_table_name != None:
             selector += '&table_name=%s' % urllib.quote(new_table_name)
@@ -333,7 +349,8 @@ class SQLShare:
         """
         h = httplib.HTTPSConnection(self.HOST)
         headers = self.set_auth_header()
-        selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql), maxrows)
+        selector = "%s?sql=%s&maxrows=%s" % \
+                (self.RESTDB, urllib.quote(sql), maxrows)
         h.request('GET', selector, '', headers)
         res = h.getresponse()
         if res.status == 202: #accepted
@@ -352,9 +369,9 @@ class SQLShare:
 
 
 # Garret says:
-# for the most bizzare reason, having the check table function inside of the put_table1 method
-# would freeze upon SSL handshake every single time. But it works when its not being called from
-# within that method
+# for the most bizzare reason, having the check table function inside of the
+# put_table1 method would freeze upon SSL handshake every single time. But it
+# works when its not being called from within that method
 # Bill says: sounds like a race condition on the server....
     def put_table(self, filename, parser):
         self.put_table1(filename, parser)
@@ -402,10 +419,12 @@ class SQLShare:
         """
         if not schema:
             schema = self.schema
-        selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(schema), urllib.quote(name))
+        selector = "%s/dataset/%s/%s/permissions" % \
+                (self.RESTDB2, urllib.quote(schema), urllib.quote(name))
         return json.loads(self.poll_selector(selector))
 
-    def set_permissions(self, name, is_public=False, is_shared=False, authorized_viewers=None):
+    def set_permissions(self, name, is_public=False, is_shared=False,
+            authorized_viewers=None):
         """
         Share table with given users
         """
@@ -425,7 +444,8 @@ class SQLShare:
         }
 
         # permission API is defined in v2
-        selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(self.schema), urllib.quote(name))
+        selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2,
+                urllib.quote(self.schema), urllib.quote(name))
         h.request('PUT', selector, json.dumps(queryobj), headers)
         res = h.getresponse()
         if res.status == 200:
