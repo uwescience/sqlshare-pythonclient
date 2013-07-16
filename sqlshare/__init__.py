@@ -108,8 +108,10 @@ class SQLShare:
         h.request('POST', selector, body, headers)
 
         res = h.getresponse()
-        if res.status == 200: return res.read()
-        else: raise SQLShareError("%s: %s" % (res.status, res.read()))
+        if res.status == 200:
+            return res.read()
+        else:
+            raise SQLShareError("%s: %s" % (res.status, res.read()))
 
     def upload(self, filepath, tablenames=None):
         """
@@ -176,7 +178,8 @@ class SQLShare:
         """
         Get the tags for a given dataset
         """
-        if not schema: schema = self.schema
+        if not schema:
+            schema = self.schema
         params = (self.REST, urllib.quote(schema), urllib.quote(query_name))
         selector = "%s/v2/db/dataset/%s/%s/tags" % params
         return json.loads(self.poll_selector(selector))
@@ -199,8 +202,10 @@ class SQLShare:
         selector = "%s/v2/db/dataset/%s/%s/tags" % params
         h.request('PUT', selector, json.dumps(tagsobj), headers)
         res = h.getresponse()
-        if res.status == 200: return json.loads(res.read())
-        else: raise SQLShareError("%s: %s" % (res.status, res.read()))
+        if res.status == 200:
+            return json.loads(res.read())
+        else:
+            raise SQLShareError("%s: %s" % (res.status, res.read()))
 
 
     # TODO: Add a generic PUT, or generalize this method
@@ -216,8 +221,10 @@ class SQLShare:
             h.request(verb, selector, '', headers)
             res = h.getresponse()
             if res.status == 200:
-                if returnresponse: return res
-                else: return res.read()
+                if returnresponse:
+                    return res
+                else:
+                    return res.read()
             if res.status == 202:
                 time.sleep(0.5)
                 continue
@@ -285,7 +292,8 @@ class SQLShare:
             return 'modified'
         elif res.status == 201:
             return 'created'
-        else: raise SQLShareError("%s: %s" % (res.status, res.read()))
+        else:
+            raise SQLShareError("%s: %s" % (res.status, res.read()))
 
     def delete_query(self, query_name):
         h = httplib.HTTPSConnection(self.HOST)
@@ -392,7 +400,8 @@ class SQLShare:
         """
         Get the permissions for a given dataset
         """
-        if not schema: schema = self.schema
+        if not schema:
+            schema = self.schema
         selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(schema), urllib.quote(name))
         return json.loads(self.poll_selector(selector))
 
@@ -419,8 +428,10 @@ class SQLShare:
         selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(self.schema), urllib.quote(name))
         h.request('PUT', selector, json.dumps(queryobj), headers)
         res = h.getresponse()
-        if res.status == 200: return 'set'
-        else: raise SQLShareError("%s: %s" % (res.status, res.read()))
+        if res.status == 200:
+            return 'set'
+        else:
+            raise SQLShareError("%s: %s" % (res.status, res.read()))
 
 
 class SQLShareUploadResponse:
