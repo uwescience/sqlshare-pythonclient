@@ -300,7 +300,7 @@ Save a query
     self.set_auth_header(headers)
 
     queryobj = {
-	    "is_public": is_public,
+      "is_public": is_public,
       "description":description,
       "sql_code":sql
     }
