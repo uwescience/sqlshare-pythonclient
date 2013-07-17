@@ -94,7 +94,7 @@ class SQLShare:
             pos = f.tell()
             lines = f.readlines(self.CHUNKSIZE)
 
-    def post_file_chunk(self, filepath, chunk, dataset_name=None,
+    def _post_file_chunk(self, filepath, chunk, dataset_name=None,
             upload_id=None):
         filename = os.path.basename(filepath)
         content_type, body = _encode_multipart_formdata_via_chunks(filename,
@@ -146,8 +146,7 @@ class SQLShare:
         for fn, tn in pairs:
             yield self.uploadone(fn, tn)
 
-    def uploadone(self, fn, dataset_name, force_append=None,
-            force_column_headers=None):
+    def uploadone(self, fn, dataset_name):
         """
         Upload a single file, in chunks.
         """
@@ -177,10 +176,11 @@ class SQLShare:
             lines += chunk.count('\n')
             try:
                 if first_chunk:
-                    upload_id = self.upload_first_chunk(fn, chunk, dataset_name)
+                    upload_id = self._upload_first_chunk(fn, chunk,
+                            dataset_name)
                     first_chunk = False
                 else:
-                    self.upload_later_chunk(fn, chunk, upload_id)
+                    self._upload_later_chunk(fn, chunk, upload_id)
             except SQLShareError as error:
                 # record the stopping point in a file
                 f = open(rfn, "w")
@@ -190,21 +190,21 @@ class SQLShare:
 
         print "finished uploading %s" % dataset_name
         # Now get the parser then move it to a real dataset
-        self.parse_and_move_to_database(upload_id)
+        self._parse_and_move_to_database(upload_id)
         return dataset_name
 
-    def upload_first_chunk(self, fn, chunk, dataset_name):
+    def _upload_first_chunk(self, fn, chunk, dataset_name):
         print "pushing first chunk from %s..." % fn
-        json_upload_id = self.post_file_chunk(fn, chunk,
+        json_upload_id = self._post_file_chunk(fn, chunk,
                 dataset_name=dataset_name)
         upload_id = json.loads(json_upload_id)
         return upload_id
 
-    def upload_later_chunk(self, fn, chunk, upload_id):
+    def _upload_later_chunk(self, fn, chunk, upload_id):
         print "pushing later chunk from %s to %s..." % (fn, upload_id)
-        self.post_file_chunk(fn, chunk, upload_id=upload_id)
+        self._post_file_chunk(fn, chunk, upload_id=upload_id)
 
-    def single_request(self, url, verb, expected_status, headers=None,
+    def _single_request(self, url, verb, expected_status, headers=None,
             body=None):
         connection = httplib.HTTPSConnection(self.HOST)
         if headers is None:
@@ -233,11 +233,11 @@ class SQLShare:
             raise SQLShareError('%s[%s]: got status %d expected %d' % \
                     (verb, url, status, expected_status))
 
-    def parse_and_move_to_database(self, upload_id):
+    def _parse_and_move_to_database(self, upload_id):
         print "moving %s to the database" % upload_id
         url = '%s/%s/database' % (self.RESTFILE, upload_id)
         # First we have to do a PUT to the URL, and expect code 202
-        self.single_request(url, 'PUT', 202)
+        self._single_request(url, 'PUT', 202)
         print ".. started. Polling"
         # Then we poll GET to the URL, and expect code 200 eventually
         upload_record = self._poll_selector(url)
@@ -302,11 +302,6 @@ class SQLShare:
             else:
                 raise SQLShareError("code: %s : %s" % (res.status, res.read()))
 
-    def write_error_out(self, chunk):
-        f = open("error_set_%s" % self.ERROR_NUM, 'w')
-        f.write(chunk)
-        f.close()
-
     # (Why are the tags in a separate API call??)
     def get_userinfo(self):
         """
@@ -316,7 +311,7 @@ class SQLShare:
         return json.loads(self._poll_selector(selector))
 
     # attempt to generalize table operations--use poll selector instead
-    def tableop(self, tableid, operation):
+    def _tableop(self, tableid, operation):
         h = httplib.HTTPSConnection(self.HOST)
         headers = self.set_auth_header()
         selector = '%s/%s/%s' % (self.RESTFILE, urllib.quote(tableid),
@@ -422,11 +417,11 @@ class SQLShare:
             raise SQLShareError("code: %s : %s" % (res.status, res.read()))
 
     def get_parser(self, tableid):
-        resp = SQLShareUploadResponse(self.tableop(tableid, 'parser'))
+        resp = SQLShareUploadResponse(self._tableop(tableid, 'parser'))
         while (not resp.done()):
             if resp.failed():
                 raise ValueError("%s: %s" % resp.error)
-            resp = SQLShareUploadResponse(self.tableop(tableid, 'parser'))
+            resp = SQLShareUploadResponse(self._tableop(tableid, 'parser'))
         return resp.parser
 
 
