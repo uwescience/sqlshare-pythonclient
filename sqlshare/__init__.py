@@ -140,20 +140,27 @@ class SQLShare:
 
     def uploadone(self, fn, dataset_name, force_append=None,
             force_column_headers=None):
+        """
+        Upload a single file, in chunks.
+        """
         f = open(fn)
         first_chunk = True
         start = time.time()
         rfn = restartfile(fn)
 
+        # See if there is a restart file and, if so, seek to the old position
         if os.path.exists(rfn):
             try:
                 rf = open(rfn)
                 pos = int(rf.read())
                 rf.close()
                 f.seek(pos)
+                os.unlink(rfn)
+                print "restarting from position %d" % pos
             except:
-                print "Bad restart file %s; ignoring." % rfn
+                print "bad restart file %s; ignoring." % rfn
 
+        # Upload the file, one chunk at a time.
         lines = 0
         for pos, chunk in self.read_chunk(f):
             print 'processing chunk line %s to %s (%s s elapsed)' % \
@@ -165,11 +172,12 @@ class SQLShare:
                             force_column_headers)
                 else:
                     self.upload_chunk(fn, dataset_name, chunk, True, False)
-            except SQLShareError:
+            except SQLShareError as error:
                 # record the stopping point in a file
                 f = open(rfn, "w")
                 f.write(str(pos))
                 f.close()
+                raise error
             first_chunk = False
 
         print "finished %s" % dataset_name
