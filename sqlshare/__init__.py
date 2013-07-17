@@ -69,19 +69,30 @@ class SQLShare:
         self.schema = self.get_userinfo()["schema"]
 
     def set_auth_header(self, header=None):
+        """Sets the HTTP Authorization header to the SQLShare API Key"""
         if header is None:
             header = {}
         header['Authorization'] = 'ss_apikey %s:%s' % \
                 (self.username, self.password)
         return header
 
-    def chunksoff(self, f, size):
+    def read_chunk(self, f):
+        """
+        Read about size bytes from the file f, but in complete lines.
+
+        @param f the file.
+        @param size the number of bytes, approximately, to read.
+        @return the position of the *start* of this chunk, and then a blob of
+        all the lines concatenated together.
+        """
+        # TODO profile to see how expensive the "".join is. I bet we could do
+        # better if we had to. (@dhalperi)
         pos = f.tell()
-        lines = f.readlines(size)
+        lines = f.readlines(self.CHUNKSIZE)
         while lines:
             yield (pos, ("".join(lines)))
-            lines = f.readlines(size)
-
+            pos = f.tell()
+            lines = f.readlines(self.CHUNKSIZE)
 
     def post_file_chunk(self, filepath, dataset_name, chunk, force_append,
             force_column_headers):
@@ -144,7 +155,7 @@ class SQLShare:
                 print "Bad restart file %s; ignoring." % rfn
 
         lines = 0
-        for pos, chunk in self.chunksoff(f, self.CHUNKSIZE):
+        for pos, chunk in self.read_chunk(f):
             print 'processing chunk line %s to %s (%s s elapsed)' % \
                     (lines, lines + chunk.count('\n'), time.time() - start)
             lines += chunk.count('\n')
