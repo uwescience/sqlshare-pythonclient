@@ -386,7 +386,8 @@ class SQLShare:
         """
         h = httplib.HTTPSConnection(self.HOST)
         headers = self.set_auth_header()
-        selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
+        selector = "%s/dataset/%s/%s" % (self.RESTDB2,
+                urllib.quote(self.username), urllib.quote(filename))
         h.request('GET', selector, '', headers)
         res = h.getresponse()
         if res.status == 200:
