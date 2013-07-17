@@ -17,7 +17,6 @@ import json
 import urllib
 import sys, os, time
 from ConfigParser import SafeConfigParser
-import getpass
 
 def debug(m):
     print m
@@ -64,9 +63,6 @@ class SQLShare:
             self.username = self.config.get('sqlshare', 'user')
         if self.password is None:
             self.password = self.config.get('sqlshare', 'password')
-        # if password is still none, get it from command line
-        if self.password is None:
-            self.password = getpass.getpass()
 
         self.HOST = self.config.get('sqlshare', 'host')
         self.CHUNKSIZE = self.config.getint('sqlshare', 'chunkSize')
