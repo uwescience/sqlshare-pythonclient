@@ -28,14 +28,11 @@ def main():
 
   # check whether the dataset already exists or not
   datasetExist = conn.table_exists(datasetName)
-  start = 0
   if not datasetExist:
-      # upload the first file and create the dataset
-      print "creating dataset %s and uploading %s" % ( datasetName, files[0] )
-      conn.uploadone(files[0],datasetName)
-      start = 1
+      print "The dataset [%s].[%s] does not exist in SQLShare. Please create it first." % (conn.username, datasetName)
+      sys.exit(1)
 
-  for fn in itertools.islice(files,start,None):
+  for fn in files:
       # dataset already exists. force append always
       print "uploading %s and append to %s" % ( fn, datasetName )
       conn.uploadone(fn,datasetName, True)
