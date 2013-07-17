@@ -198,6 +198,10 @@ class SQLShare:
         json_upload_id = self._post_file_chunk(fn, chunk,
                 dataset_name=dataset_name)
         upload_id = json.loads(json_upload_id)
+        print ".. done! Now getting the parser"
+        # Get the parser
+        url = '%s/%s/parser' % (self.RESTFILE, upload_id)
+        print self._single_request(url, 'GET', 200)
         return upload_id
 
     def _upload_later_chunk(self, fn, chunk, upload_id):
