@@ -187,8 +187,8 @@ class SQLShare:
                 f.write(str(pos))
                 f.close()
                 raise error
-
         print "finished uploading %s" % dataset_name
+
         # Now get the parser then move it to a real dataset
         self._parse_and_move_to_database(upload_id)
         return dataset_name
