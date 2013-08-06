@@ -17,11 +17,13 @@ import getpass
 def debug(m):
   print m
 
-DEFAULTCHUNKSIZE = 100*2**20 # 100MB (test)
+DEFAULT_CHUNKSIZE = 100*2**20 # 100 MB
+DEFAULT_DL_CHUNKSIZE = 50**10 # 50 KB
 
 _DEFAULT_CONFIG = {
     'host': 'rest.sqlshare.escience.washington.edu',
-    'chunkSize': str(DEFAULTCHUNKSIZE)
+    'chunkSize': str(DEFAULT_CHUNKSIZE),
+    'dlChunkSize': str(DEFAULT_DL_CHUNKSIZE)
 }
 
 """
@@ -31,7 +33,8 @@ def _load_conf():
     config = SafeConfigParser() #_DEFAULT_CONFIG)
     config.add_section('sqlshare')
     config.set('sqlshare', 'host', 'rest.sqlshare.escience.washington.edu')
-    config.set('sqlshare', 'chunkSize', str(DEFAULTCHUNKSIZE))
+    config.set('sqlshare', 'chunkSize', str(DEFAULT_CHUNKSIZE))
+    config.set('sqlshare', 'dlChunkSize', str(DEFAULT_DL_CHUNKSIZE))
     confFile = os.path.expanduser('~/.sqlshare/config')
     if os.path.exists(confFile):
        # load the configuration
@@ -49,7 +52,8 @@ class SQLShare:
   RESTFILE = REST + "/v2/file"
   RESTDB = REST + "/v1/db"
   RESTDB2 = REST + "/v2/db"
-  CHUNKSIZE = DEFAULTCHUNKSIZE 
+  CHUNKSIZE = DEFAULT_CHUNKSIZE 
+  DL_CHUNKSIZE = DEFAULT_DL_CHUNKSIZE 
   ERROR_NUM = 0
   SQLSHARE_SECTION = 'sqlshare'
 
@@ -72,6 +76,7 @@ class SQLShare:
 
     self.HOST = self.config.get('sqlshare','host')
     self.CHUNKSIZE = self.config.getint('sqlshare','chunkSize')
+    self.DL_CHUNKSIZE = self.config.getint('sqlshare','dlChunkSize')
     self.schema = self.get_userinfo()["schema"]
 
   def set_auth_header(self, header = {}):
