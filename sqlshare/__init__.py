@@ -17,8 +17,8 @@ import getpass
 def debug(m):
   print m
 
-DEFAULT_CHUNKSIZE = 100*2**20 # 100 MB
-DEFAULT_DL_CHUNKSIZE = 50**10 # 50 KB
+DEFAULT_CHUNKSIZE = 100 * 2**20 # 100 MB
+DEFAULT_DL_CHUNKSIZE = 50 * 2**10 # 50 KB
 
 _DEFAULT_CONFIG = {
     'host': 'rest.sqlshare.escience.washington.edu',
@@ -324,13 +324,18 @@ Save a query
     selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))    
     h.request('DELETE', selector, '', headers)       
 
-  """
-Return the result of a SQL query as delimited text.
-  """
-  # TODO: Need to be able to control the format
-  def download_sql_result(self, sql, format='csv'):
+  def download_sql_result(self, sql, format='csv', output=None):
+    """Return the result of a SQL query as delimited text."""
     selector = "%s/file?sql=%s&format=%s" % (self.RESTDB, urllib.quote(sql), format)    
-    return self.poll_selector(selector)
+    response = self.poll_selector(selector, returnresponse=True)
+    if output is None:
+        return response.read()
+    data = response.read(self.DL_CHUNKSIZE)
+    output.write(data)
+    while len(data) == self.DL_CHUNKSIZE:
+      data = response.read(self.DL_CHUNKSIZE)
+      output.write(data)
+    return
 
   def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
     h = httplib.HTTPSConnection(self.HOST)        
@@ -350,11 +355,8 @@ Return the result of a SQL query as delimited text.
     
     return json.loads(res.read())
  
-  """
-Execute a sql query
-  """
-  # What's the difference between this and download_sql_result?   
   def execute_sql(self, sql, maxrows=700):
+    """Execute a sql query"""
     h = httplib.HTTPSConnection(self.HOST)        
     headers = self.set_auth_header()
     selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql),maxrows)    

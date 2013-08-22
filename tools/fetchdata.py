@@ -25,9 +25,9 @@ python %s billhowe@washington.edu foo "select * from sys.tables"
 """ % __file__
   return cmd + exmp
 
-def fetchdata(sql, format):
+def fetchdata(sql, format, output):
   conn = sqlshare.SQLShare()
-  return conn.download_sql_result(sql, format)
+  return conn.download_sql_result(sql, format, output)
 
 def get_parser():
   """Build the parser for the arguments to this program."""
@@ -68,8 +68,7 @@ def main():
   parser = get_parser()
   args = parser.parse_args()
   # Fetch the data
-  data = fetchdata(args.sql, args.format)
-  args.output.write(data)
+  data = fetchdata(args.sql, args.format, args.output)
   args.output.close()
 
 
