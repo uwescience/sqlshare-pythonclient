@@ -32,7 +32,7 @@ def main():
   conn = sqlshare.SQLShare(options.username,options.password)
 
   if not options.datasetname:
-    datasetname = args[0]
+    datasetname = os.path.basename(args[0])
   else:
     datasetname = options.datasetname
 
