@@ -179,18 +179,21 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
 
     lines = 0
     for pos, chunk in self.chunksoff(f, self.CHUNKSIZE):        
-        print 'processing chunk line %s to %s (%s s elapsed)' % (lines, lines + chunk.count('\n'), time.time() - start)
-        lines += chunk.count('\n')
+        chunk_lines = chunk.count('\n')
+        print 'processing chunk line %s to %s (%s s elapsed)' % (lines, lines + chunk_lines, time.time() - start)
         try:
           if first_chunk:
             self.upload_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
           else:
             self.upload_chunk(fn, dataset_name, chunk, True, False)
-        except SQLShareError:
+        except SQLShareError as e:
           # record the stopping point in a file
           f = open(rfn,"w")
           f.write(str(pos))
           f.close()
+          print >> sys.stderr, "Error uploading data in the chunk starting at pos %d (lines %d to %d): %s" % (pos, lines, lines+chunk_count, e)
+          break
+        lines += chunk_lines
         first_chunk = False           
 
     if lines == 0:
