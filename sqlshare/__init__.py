@@ -193,6 +193,10 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
           f.close()
         first_chunk = False           
 
+    if lines == 0:
+        print >> sys.stderr, "Found no data to upload in %s" % f
+        return None
+
     print "finished %s" % dataset_name
     return dataset_name
   
