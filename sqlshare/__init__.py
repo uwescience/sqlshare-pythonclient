@@ -70,8 +70,6 @@ class SQLShare(object):
     RESTDB2 = REST + "/v2/db"
     chunksize = DEFAULT_CHUNKSIZE
     dl_chunksize = DEFAULT_DL_CHUNKSIZE
-    ERROR_NUM = 0
-    SQLSHARE_SECTION = 'sqlshare'
 
     def __init__(self, username=None, password=None):
         """
@@ -248,11 +246,6 @@ class SQLShare(object):
                 continue
             else:
                 raise SQLShareError("code: %s : %s" % (res.status, res.read()))
-
-    def write_error_out(self, chunk):
-        file_ = open("error_set_%s" % self.ERROR_NUM, 'w')
-        file_.write(chunk)
-        file_.close()
 
     # (Why are the tags in a separate API call??)
     def get_userinfo(self):
