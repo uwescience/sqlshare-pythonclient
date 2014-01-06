@@ -104,7 +104,7 @@ class SQLShare(object):
 
     def __post_file_chunk(self, filepath, dataset_name, chunk, force_append, force_column_headers):
         filename = os.path.basename(filepath)
-        content_type, body = encode_multipart_formdata_via_chunks(filename, chunk)
+        content_type, body = encode_multipart_formdata_chunk(filename, chunk)
 
         conn = httplib.HTTPSConnection(self.rest_host)
         headers = {
@@ -432,21 +432,20 @@ class SQLShareUploadResponse(object):
         return self.code >= self.ERROR
 
 
-def encode_multipart_formdata_via_chunks(filename, chunk):
+def encode_multipart_formdata_chunk(filename, chunk):
 
-    BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
-    CRLF = '\r\n'
-    L = []
+    boundary = '----------ThIs_Is_tHe_bouNdaRY_$'
+    crlf = '\r\n'
+    lines = []
     contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-    L.append('--%s' % BOUNDARY)
-    # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
-    L.append('Content-Disposition: form-data; name="file1"; filename="%s"' % filename)
-    L.append('Content-Type: %s' % contenttype)
-    L.append(CRLF + chunk)
-    L.append('--' + BOUNDARY + '--')
-    L.append('')
-    body = CRLF.join(L)
-    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
+    lines.append('--%s' % boundary)
+    lines.append('Content-Disposition: form-data; name="file1"; filename="%s"' % filename)
+    lines.append('Content-Type: %s' % contenttype)
+    lines.append(crlf + chunk)
+    lines.append('--' + boundary + '--')
+    lines.append('')
+    body = crlf.join(lines)
+    content_type = 'multipart/form-data; boundary=%s' % boundary
     return content_type, body
 
 
