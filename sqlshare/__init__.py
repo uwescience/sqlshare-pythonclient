@@ -137,61 +137,61 @@ class SQLShare(object):
       @param hasHeader: (optional default = true) STRING 'true' or 'false' if the document has a header
       @param delimiter: (optional default = tab) the character to be a delimiter, or 'tab' to refer to '\t'
         """
-        fnames = [fn for fn in glob.glob(filepath)]
+        fnames = [filename for filename in glob.glob(filepath)]
         if not tablenames:
-            tablenames = [os.path.basename(fn) for fn in fnames]
+            tablenames = [os.path.basename(filename) for filename in fnames]
         print "uploading %s into %s" % (filepath, tablenames)
         pairs = zip(fnames, tablenames)
         # get user info; we need the schema name
 
-        for fn, tn in pairs:
-            yield self.uploadone(fn, tn)
+        for filename, tablename in pairs:
+            yield self.uploadone(filename, tablename)
 
-    def uploadone(self, fn, dataset_name, force_append=None, force_column_headers=None):
-        f = open(fn)
+    def uploadone(self, filename, dataset_name, force_append=None, force_column_headers=None):
+        file_ = open(filename)
         first_chunk = True
         start = time.time()
-        rfn = restartfile(fn)
+        restart_filename = _restartfile(filename)
 
-        if os.path.exists(rfn):
+        if os.path.exists(restart_filename):
             try:
-                rf = open(rfn)
-                pos = int(rf.read())
-                rf.close()
-                f.seek(pos)
+                restart_file = open(restart_filename)
+                pos = int(restart_file.read())
+                restart_file.close()
+                file_.seek(pos)
             except:
-                print "Bad restart file %s; ignoring." % rfn
+                print "Bad restart file %s; ignoring." % restart_filename
 
         lines = 0
-        for pos, chunk in file_chunks(f, self.chunksize):
+        for pos, chunk in file_chunks(file_, self.chunksize):
             chunk_lines = chunk.count('\n')
             print 'processing chunk line %s to %s (%s s elapsed)' % (lines, lines + chunk_lines, time.time() - start)
             try:
                 if first_chunk:
-                    self.upload_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
+                    self.__upload_chunk(filename, dataset_name, chunk, force_append, force_column_headers)
                 else:
-                    self.upload_chunk(fn, dataset_name, chunk, True, False)
-            except SQLShareError as e:
+                    self.__upload_chunk(filename, dataset_name, chunk, True, False)
+            except SQLShareError as err:
                 # record the stopping point in a file
-                f = open(rfn, "w")
-                f.write(str(pos))
-                f.close()
-                print >> sys.stderr, "Error uploading data in the chunk starting at pos %d (lines %d to %d): %s" % (pos, lines, lines+chunk_lines, e)
+                restart_file = open(restart_filename, "w")
+                restart_file.write(str(pos))
+                restart_file.close()
+                print >> sys.stderr, "Error uploading data in the chunk starting at pos %d (lines %d to %d): %s" % (pos, lines, lines+chunk_lines, err)
                 break
             lines += chunk_lines
             first_chunk = False
 
         if lines == 0:
-            print >> sys.stderr, "Found no data to upload in %s" % f
+            print >> sys.stderr, "Found no data to upload in %s" % filename
             return None
 
         print "finished %s" % dataset_name
         return dataset_name
 
-    def upload_chunk(self, fn, dataset_name, chunk, force_append=None, force_column_headers=None):
-        print "pushing %s..." % fn
+    def __upload_chunk(self, filename, dataset_name, chunk, force_append=None, force_column_headers=None):
+        print "pushing %s..." % filename
         # step 1: push file
-        jsonuploadid = self.post_file_chunk(fn, dataset_name, chunk, force_append, force_column_headers)
+        jsonuploadid = self.post_file_chunk(filename, dataset_name, chunk, force_append, force_column_headers)
         uploadid = json.loads(jsonuploadid)
 
         print "parsing %s..." % uploadid
@@ -250,9 +250,9 @@ class SQLShare(object):
                 raise SQLShareError("code: %s : %s" % (res.status, res.read()))
 
     def write_error_out(self, chunk):
-        f = open("error_set_%s" % self.ERROR_NUM, 'w')
-        f.write(chunk)
-        f.close()
+        file_ = open("error_set_%s" % self.ERROR_NUM, 'w')
+        file_.write(chunk)
+        file_.close()
 
     # (Why are the tags in a separate API call??)
     def get_userinfo(self):
@@ -261,7 +261,7 @@ class SQLShare(object):
         return json.loads(self.poll_selector(selector))
 
     # attempt to generalize table operations--use poll selector instead
-    def tableop(self, tableid, operation):
+    def __tableop(self, tableid, operation):
         conn = httplib.HTTPSConnection(self.rest_host)
         headers = self.__set_auth_header()
         selector = '%s/%s/%s' % (self.RESTFILE, urllib.quote(tableid), operation)
@@ -354,11 +354,11 @@ class SQLShare(object):
             raise SQLShareError("code: %s : %s" % (res.status, res.read()))
 
     def get_parser(self, tableid):
-        resp = SQLShareUploadResponse(self.tableop(tableid, 'parser'))
+        resp = SQLShareUploadResponse(self.__tableop(tableid, 'parser'))
         while not resp.done():
             if resp.failed():
                 raise ValueError("%s: %s" % resp.error)
-            resp = SQLShareUploadResponse(self.tableop(tableid, 'parser'))
+            resp = SQLShareUploadResponse(self.__tableop(tableid, 'parser'))
         return resp.parser
 
 
@@ -449,7 +449,7 @@ def encode_multipart_formdata_via_chunks(filename, chunk):
     # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
     L.append('Content-Disposition: form-data; name="file1"; filename="%s"' % filename)
     L.append('Content-Type: %s' % contenttype)
-    L.append('\r\n' + chunk)
+    L.append(CRLF + chunk)
     L.append('--' + BOUNDARY + '--')
     L.append('')
     body = CRLF.join(L)
@@ -458,5 +458,5 @@ def encode_multipart_formdata_via_chunks(filename, chunk):
 
 
 # construct the name of the restart file for long uploads
-def restartfile(fn):
-    return fn + ".sqlshare.restart"
+def _restartfile(filename):
+    return filename + ".sqlshare.restart"
