@@ -1,18 +1,23 @@
 """
 Python interface to SQLShare
 
-G. Cole and B. Howe
+G. Cole and D. Halperin and B. Howe
+University of Washington
+https://github.com/uwescience/sqlshare-pythonclient/
 """
+
 import os.path, tempfile
 import glob
 import stat, mimetypes
 import httplib
-#httplib.HTTPConnection.debuglevel = 1
 import json
 import urllib
 import sys, os, time
 from ConfigParser import SafeConfigParser
 import getpass
+
+# For HTTP debug mode, uncomment:
+#httplib.HTTPConnection.debuglevel = 1
 
 def debug(m):
     print m
@@ -67,16 +72,16 @@ class SQLShare:
         self.username = username
         self.password = password
         if self.username is None:
-            self.username = self.config.get('sqlshare','user')
+            self.username = self.config.get('sqlshare', 'user')
         if self.password is None:
-            self.password = self.config.get('sqlshare','password')
+            self.password = self.config.get('sqlshare', 'password')
         # if password is still none, get it from command line
         if self.password is None:
             self.password = getpass.getpass()
     
-        self.HOST = self.config.get('sqlshare','host')
-        self.CHUNKSIZE = self.config.getint('sqlshare','chunkSize')
-        self.DL_CHUNKSIZE = self.config.getint('sqlshare','dlChunkSize')
+        self.HOST = self.config.get('sqlshare', 'host')
+        self.CHUNKSIZE = self.config.getint('sqlshare', 'chunkSize')
+        self.DL_CHUNKSIZE = self.config.getint('sqlshare', 'dlChunkSize')
         self.schema = self.get_userinfo()["schema"]
     
     def set_auth_header(self, header = {}):
@@ -156,11 +161,11 @@ class SQLShare:
         if not tablenames: 
             tablenames = [os.path.basename(fn) for fn in fnames]
         print "uploading %s into %s" % (filepath, tablenames)
-        pairs = zip(fnames,tablenames)
+        pairs = zip(fnames, tablenames)
         # get user info; we need the schema name
     
-        for fn,tn in pairs:
-            yield self.uploadone(fn,tn)
+        for fn, tn in pairs:
+            yield self.uploadone(fn, tn)
       
     def uploadone(self, fn, dataset_name, force_append=None, force_column_headers=None):
         f = open(fn)
@@ -188,7 +193,7 @@ class SQLShare:
                     self.upload_chunk(fn, dataset_name, chunk, True, False)
             except SQLShareError as e:
                 # record the stopping point in a file
-                f = open(rfn,"w")
+                f = open(rfn, "w")
                 f.write(str(pos))
                 f.close()
                 print >> sys.stderr, "Error uploading data in the chunk starting at pos %d (lines %d to %d): %s" % (pos, lines, lines+chunk_count, e)
@@ -366,7 +371,7 @@ class SQLShare:
         """Execute a sql query"""
         h = httplib.HTTPSConnection(self.HOST)        
         headers = self.set_auth_header()
-        selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql),maxrows)    
+        selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql), maxrows)    
         h.request('GET', selector, '', headers)
         res = h.getresponse()
         if res.status == 202: #accepted
@@ -432,7 +437,7 @@ class SQLShare:
     """
   Get the permissions for a given dataset
     """
-    def get_permissions(self,name,schema=None):
+    def get_permissions(self, name, schema=None):
         if not schema: schema = self.schema
         selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(schema), urllib.quote(name)) 
         return json.loads(self.poll_selector(selector))
@@ -498,7 +503,7 @@ def _encode_multipart_formdata_via_chunks(filename, chunk):
     file_size = len(chunk)    
     contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
     L.append('--%s' % BOUNDARY)    
-    # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key,filename))
+    # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
     L.append('Content-Disposition: form-data; name="file1"; filename="%s"' % filename)
     L.append('Content-Type: %s' % contenttype)    
     L.append('\r\n' + chunk)
@@ -532,8 +537,8 @@ def _encode_multipart_formdata(fields, files):
         contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
         L.append('--%s' % BOUNDARY)
         # Can't save the table with a different name
-        # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key,filename))
-        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (tablename,tablename))
+        # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
+        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (tablename, tablename))
         L.append('Content-Type: %s' % contenttype)
         fd.seek(0)
         L.append('\r\n' + fd.read())
