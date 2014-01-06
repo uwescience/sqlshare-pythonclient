@@ -457,40 +457,6 @@ def encode_multipart_formdata_via_chunks(filename, chunk):
     return content_type, body
 
 
-def _encode_multipart_formdata(fields, files):
-    """
-Utility for formatting form data
-@return: (content_type, body) ready for httplib.HTTP instance
-
-DO NOT ERASE, USED AS MULTIPART REFERENCE
-    """
-
-    BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
-    CRLF = '\r\n'
-    L = []
-    for (key, value) in fields:
-        L.append('--' + BOUNDARY)
-        L.append('Content-Disposition: form-data; name="%s"' % key)
-        L.append('')
-        L.append(value)
-    for (tablename, fd) in files:
-        filename = os.path.basename(fd.name) #fd.name.split('/')[-1]
-        #filename = filename.split('\\')[-1]
-        contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-        L.append('--%s' % BOUNDARY)
-        # Can't save the table with a different name
-        # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
-        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (tablename, tablename))
-        L.append('Content-Type: %s' % contenttype)
-        fd.seek(0)
-        L.append('\r\n' + fd.read())
-    L.append('--' + BOUNDARY + '--')
-    L.append('')
-    body = CRLF.join(L)
-    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
-    return content_type, body
-
-
 # construct the name of the restart file for long uploads
 def restartfile(fn):
     return fn + ".sqlshare.restart"
