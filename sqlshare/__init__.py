@@ -104,7 +104,7 @@ class SQLShare(object):
         return header
 
 
-    def post_file_chunk(self, filepath, dataset_name, chunk, force_append, force_column_headers):
+    def __post_file_chunk(self, filepath, dataset_name, chunk, force_append, force_column_headers):
         filename = os.path.basename(filepath)
         content_type, body = encode_multipart_formdata_via_chunks(filename, chunk)
 
@@ -191,12 +191,12 @@ class SQLShare(object):
     def __upload_chunk(self, filename, dataset_name, chunk, force_append=None, force_column_headers=None):
         print "pushing %s..." % filename
         # step 1: push file
-        jsonuploadid = self.post_file_chunk(filename, dataset_name, chunk, force_append, force_column_headers)
+        jsonuploadid = self.__post_file_chunk(filename, dataset_name, chunk, force_append, force_column_headers)
         uploadid = json.loads(jsonuploadid)
 
         print "parsing %s..." % uploadid
         # step 2: get parse information
-        self.poll_selector('%s/v2/file/%s' % (self.REST, uploadid))
+        self.__poll_selector('%s/v2/file/%s' % (self.REST, uploadid))
 
     def get_tags(self, query_name, schema=None):
         "Get the tags for a given dataset"
@@ -204,7 +204,7 @@ class SQLShare(object):
             schema = self.schema
         params = (self.REST, urllib.quote(schema), urllib.quote(query_name))
         selector = "%s/v2/db/dataset/%s/%s/tags" % params
-        return json.loads(self.poll_selector(selector))
+        return json.loads(self.__poll_selector(selector))
 
     def set_tags(self, name, tags):
         "Set the tags for a given dataset."
@@ -229,7 +229,7 @@ class SQLShare(object):
 
 
     # TODO: Add a generic PUT, or generalize this method
-    def poll_selector(self, selector, verb='GET', returnresponse=False, headers=None):
+    def __poll_selector(self, selector, verb='GET', returnresponse=False, headers=None):
         "Generic GET method to poll for a response"
         if not headers:
             headers = {}
@@ -258,7 +258,7 @@ class SQLShare(object):
     def get_userinfo(self):
         "Get metadata for a query"
         selector = '%s/v1/user/%s' % (self.REST, self.username)
-        return json.loads(self.poll_selector(selector))
+        return json.loads(self.__poll_selector(selector))
 
     # attempt to generalize table operations--use poll selector instead
     def __tableop(self, tableid, operation):
@@ -272,12 +272,12 @@ class SQLShare(object):
     def get_all_queries(self):
         "Get a list of all queries that are available to user"
         selector = "%s/query" % (self.RESTDB)
-        return json.loads(self.poll_selector(selector))
+        return json.loads(self.__poll_selector(selector))
 
     def get_query(self, schema, query_name):
         "Get meta data about target query, this also includes a cached sampleset of first 200 rows of data"
         selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(schema), urllib.quote(query_name))
-        return json.loads(self.poll_selector(selector))
+        return json.loads(self.__poll_selector(selector))
 
     def save_query(self, sql, name, description, is_public=False):
         "Save a query"
@@ -312,7 +312,7 @@ class SQLShare(object):
     def download_sql_result(self, sql, format_='csv', output=None):
         """Return the result of a SQL query as delimited text."""
         selector = "%s/file?sql=%s&format=%s" % (self.RESTDB, urllib.quote(sql), format_)
-        response = self.poll_selector(selector, returnresponse=True)
+        response = self.__poll_selector(selector, returnresponse=True)
         if output is None:
             return response.read()
         data = response.read(self.dl_chunksize)
@@ -349,7 +349,7 @@ class SQLShare(object):
         res = conn.getresponse()
         if res.status == 202: #accepted
             location = res.getheader('Location')
-            return json.loads(self.poll_selector(location))
+            return json.loads(self.__poll_selector(location))
         else:
             raise SQLShareError("code: %s : %s" % (res.status, res.read()))
 
@@ -382,7 +382,7 @@ class SQLShare(object):
         if not schema:
             schema = self.schema
         selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(schema), urllib.quote(name))
-        return json.loads(self.poll_selector(selector))
+        return json.loads(self.__poll_selector(selector))
 
     def set_permissions(self, name, is_public=False, is_shared=False, authorized_viewers=None):
         """ Share table with given users """
