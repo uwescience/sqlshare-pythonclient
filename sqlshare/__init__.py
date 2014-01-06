@@ -95,7 +95,9 @@ class SQLShare(object):
         self.dl_chunksize = self.config.getint('sqlshare', 'dlChunkSize')
         self.schema = self.get_userinfo()["schema"]
 
-    def set_auth_header(self, header=None):
+    def __set_auth_header(self, header=None):
+        """Given the specified HTTP header dict, set the Authorization header
+        using the user's API key."""
         if not header:
             header = {}
         header['Authorization'] = 'ss_apikey ' + self.username + ' : ' + self.password
@@ -111,7 +113,7 @@ class SQLShare(object):
           'User-Agent': 'python_multipart_caller',
           'Content-Type': content_type,
         }
-        self.set_auth_header(headers)
+        self.__set_auth_header(headers)
 
         selector = self.RESTFILE + '?dataset=' + urllib.quote(dataset_name)
         if force_append != None:
@@ -212,7 +214,7 @@ class SQLShare(object):
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
-        self.set_auth_header(headers)
+        self.__set_auth_header(headers)
 
         # type is [(name, [tag])]
         tagsobj = [{"name" : self.username, "tags" : tags}]
@@ -233,7 +235,7 @@ class SQLShare(object):
             headers = {}
         while True:
             h = httplib.HTTPSConnection(self.rest_host)
-            headers.update(self.set_auth_header())
+            headers.update(self.__set_auth_header())
             h.request(verb, selector, '', headers)
             res = h.getresponse()
             if res.status == 200:
@@ -261,7 +263,7 @@ class SQLShare(object):
     # attempt to generalize table operations--use poll selector instead
     def tableop(self, tableid, operation):
         h = httplib.HTTPSConnection(self.rest_host)
-        headers = self.set_auth_header()
+        headers = self.__set_auth_header()
         selector = '%s/%s/%s' % (self.RESTFILE, urllib.quote(tableid), operation)
         h.request('GET', selector, '', headers)
         res = h.getresponse()
@@ -284,7 +286,7 @@ class SQLShare(object):
             'Content-Type': 'application/json',
             'Accept': 'application/json',
         }
-        self.set_auth_header(headers)
+        self.__set_auth_header(headers)
 
         queryobj = {
                 "is_public": is_public,
@@ -303,7 +305,7 @@ class SQLShare(object):
 
     def delete_query(self, query_name):
         h = httplib.HTTPSConnection(self.rest_host)
-        headers = self.set_auth_header()
+        headers = self.__set_auth_header()
         selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))
         h.request('DELETE', selector, '', headers)
 
@@ -322,7 +324,7 @@ class SQLShare(object):
 
     def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
         h = httplib.HTTPSConnection(self.rest_host)
-        headers = self.set_auth_header()
+        headers = self.__set_auth_header()
         selector = "/REST.svc/v1/materialize?query_name=%s" % urllib.quote(query_name)
 
         if new_table_name != None:
@@ -341,7 +343,7 @@ class SQLShare(object):
     def execute_sql(self, sql, maxrows=700):
         """Execute a sql query"""
         h = httplib.HTTPSConnection(self.rest_host)
-        headers = self.set_auth_header()
+        headers = self.__set_auth_header()
         selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql), maxrows)
         h.request('GET', selector, '', headers)
         res = h.getresponse()
@@ -360,40 +362,12 @@ class SQLShare(object):
         return resp.parser
 
 
-# Garret says:
-# for the most bizzare reason, having the check table function inside of the put_table1 method
-# would freeze upon SSL handshake every single time. But it works when its not being called from
-# within that method
-# Bill says: sounds like a race condition on the server....
-    def put_table(self, filename, parser):
-        self.put_table1(filename, parser)
-        success = self.table_exists(filename)
-        while not success:
-            time.sleep(0.5)
-            success = self.table_exists(filename)
-        return True
-
-    def put_table1(self, filename, parser):
-     # httplib.HTTPSConnection.debuglevel = 5
-        h = httplib.HTTPSConnection(self.rest_host)
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-        self.set_auth_header(headers)
-        selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
-        h.request('PUT', selector, json.dumps(parser), headers)
-        res = h.getresponse()
-        time.sleep(0.3)
-        if res.status != 200:
-            raise SQLShareUploadError("%s: %s" % (res.status, res.read()))
-
     # why is this method here twice?
     def table_exists(self, filename):
         """ Return true if a table exists """
         #httplib.HTTPSConnection.debuglevel = 5
         h = httplib.HTTPSConnection(self.rest_host)
-        headers = self.set_auth_header()
+        headers = self.__set_auth_header()
         selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
         h.request('GET', selector, '', headers)
         res = h.getresponse()
@@ -419,7 +393,7 @@ class SQLShare(object):
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
-        self.set_auth_header(headers)
+        self.__set_auth_header(headers)
 
         queryobj = {
           "is_public": is_public,
