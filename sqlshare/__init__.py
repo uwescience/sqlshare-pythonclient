@@ -108,7 +108,7 @@ class SQLShare(object):
         filename = os.path.basename(filepath)
         content_type, body = encode_multipart_formdata_via_chunks(filename, chunk)
 
-        h = httplib.HTTPSConnection(self.rest_host)
+        conn = httplib.HTTPSConnection(self.rest_host)
         headers = {
           'User-Agent': 'python_multipart_caller',
           'Content-Type': content_type,
@@ -121,9 +121,9 @@ class SQLShare(object):
         if force_column_headers != None:
             selector += '&force_column_headers=%s' % force_column_headers
 
-        h.request('POST', selector, body, headers)
+        conn.request('POST', selector, body, headers)
 
-        res = h.getresponse()
+        res = conn.getresponse()
         if res.status == 200:
             return res.read()
         else:
@@ -209,7 +209,7 @@ class SQLShare(object):
     def set_tags(self, name, tags):
         "Set the tags for a given dataset."
         schema = self.schema
-        h = httplib.HTTPSConnection(self.rest_host)
+        conn = httplib.HTTPSConnection(self.rest_host)
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -220,8 +220,8 @@ class SQLShare(object):
         tagsobj = [{"name" : self.username, "tags" : tags}]
         params = (self.REST, urllib.quote(schema), urllib.quote(name))
         selector = "%s/v2/db/dataset/%s/%s/tags" % params
-        h.request('PUT', selector, json.dumps(tagsobj), headers)
-        res = h.getresponse()
+        conn.request('PUT', selector, json.dumps(tagsobj), headers)
+        res = conn.getresponse()
         if res.status == 200:
             return json.loads(res.read())
         else:
@@ -234,10 +234,10 @@ class SQLShare(object):
         if not headers:
             headers = {}
         while True:
-            h = httplib.HTTPSConnection(self.rest_host)
+            conn = httplib.HTTPSConnection(self.rest_host)
             headers.update(self.__set_auth_header())
-            h.request(verb, selector, '', headers)
-            res = h.getresponse()
+            conn.request(verb, selector, '', headers)
+            res = conn.getresponse()
             if res.status == 200:
                 if returnresponse:
                     return res
@@ -262,11 +262,11 @@ class SQLShare(object):
 
     # attempt to generalize table operations--use poll selector instead
     def tableop(self, tableid, operation):
-        h = httplib.HTTPSConnection(self.rest_host)
+        conn = httplib.HTTPSConnection(self.rest_host)
         headers = self.__set_auth_header()
         selector = '%s/%s/%s' % (self.RESTFILE, urllib.quote(tableid), operation)
-        h.request('GET', selector, '', headers)
-        res = h.getresponse()
+        conn.request('GET', selector, '', headers)
+        res = conn.getresponse()
         return res
 
     def get_all_queries(self):
@@ -281,7 +281,7 @@ class SQLShare(object):
 
     def save_query(self, sql, name, description, is_public=False):
         "Save a query"
-        h = httplib.HTTPSConnection(self.rest_host)
+        conn = httplib.HTTPSConnection(self.rest_host)
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
@@ -295,8 +295,8 @@ class SQLShare(object):
         }
 
         selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(name))
-        h.request('PUT', selector, json.dumps(queryobj), headers)
-        res = h.getresponse()
+        conn.request('PUT', selector, json.dumps(queryobj), headers)
+        res = conn.getresponse()
         if res.status == 200:
             return 'modified'
         elif res.status == 201:
@@ -304,10 +304,10 @@ class SQLShare(object):
         else: raise SQLShareError("%s: %s" % (res.status, res.read()))
 
     def delete_query(self, query_name):
-        h = httplib.HTTPSConnection(self.rest_host)
+        conn = httplib.HTTPSConnection(self.rest_host)
         headers = self.__set_auth_header()
         selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))
-        h.request('DELETE', selector, '', headers)
+        conn.request('DELETE', selector, '', headers)
 
     def download_sql_result(self, sql, format_='csv', output=None):
         """Return the result of a SQL query as delimited text."""
@@ -323,7 +323,7 @@ class SQLShare(object):
         return
 
     def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
-        h = httplib.HTTPSConnection(self.rest_host)
+        conn = httplib.HTTPSConnection(self.rest_host)
         headers = self.__set_auth_header()
         selector = "/REST.svc/v1/materialize?query_name=%s" % urllib.quote(query_name)
 
@@ -333,8 +333,8 @@ class SQLShare(object):
         if new_query_name != None:
             selector += '&new_query_name=%s' % urllib.quote(new_query_name)
 
-        h.request('GET', selector, '', headers)
-        res = h.getresponse()
+        conn.request('GET', selector, '', headers)
+        res = conn.getresponse()
         if res.status >= 400:
             raise SQLShareError("code: %s : %s" % (res.status, res.read()))
 
@@ -342,11 +342,11 @@ class SQLShare(object):
 
     def execute_sql(self, sql, maxrows=700):
         """Execute a sql query"""
-        h = httplib.HTTPSConnection(self.rest_host)
+        conn = httplib.HTTPSConnection(self.rest_host)
         headers = self.__set_auth_header()
         selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql), maxrows)
-        h.request('GET', selector, '', headers)
-        res = h.getresponse()
+        conn.request('GET', selector, '', headers)
+        res = conn.getresponse()
         if res.status == 202: #accepted
             location = res.getheader('Location')
             return json.loads(self.poll_selector(location))
@@ -366,11 +366,11 @@ class SQLShare(object):
     def table_exists(self, filename):
         """ Return true if a table exists """
         #httplib.HTTPSConnection.debuglevel = 5
-        h = httplib.HTTPSConnection(self.rest_host)
+        conn = httplib.HTTPSConnection(self.rest_host)
         headers = self.__set_auth_header()
         selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
-        h.request('GET', selector, '', headers)
-        res = h.getresponse()
+        conn.request('GET', selector, '', headers)
+        res = conn.getresponse()
         if res.status == 200:
             return True
         elif res.status == 404:
@@ -388,7 +388,7 @@ class SQLShare(object):
         """ Share table with given users """
         if not authorized_viewers:
             authorized_viewers = []
-        h = httplib.HTTPSConnection(self.rest_host)
+        conn = httplib.HTTPSConnection(self.rest_host)
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -403,8 +403,8 @@ class SQLShare(object):
 
         # permission API is defined in v2
         selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(self.schema), urllib.quote(name))
-        h.request('PUT', selector, json.dumps(queryobj), headers)
-        res = h.getresponse()
+        conn.request('PUT', selector, json.dumps(queryobj), headers)
+        res = conn.getresponse()
         if res.status == 200:
             return 'set'
         else:
