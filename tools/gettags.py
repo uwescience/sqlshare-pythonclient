@@ -6,8 +6,8 @@ import sqlshare
 import httplib
 httplib.HTTPConnection.debuglevel = 1
 
-"""print usage"""
 def usage():
+    """print usage"""
     cmd = """python %s <dataset_name> [<username>] [<api-key>]""" % __file__
     exmp = """
   Example:
@@ -16,7 +16,7 @@ def usage():
     return cmd + exmp
 
 def gettags(dataset, username, password):
-    conn = sqlshare.SQLShare(username,password)
+    conn = sqlshare.SQLShare(username, password)
     info = conn.get_userinfo()
     schema = info["schema"]
     print conn.get_tags(dataset, schema=schema)

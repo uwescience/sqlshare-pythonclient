@@ -313,7 +313,6 @@ class SQLShare(object):
         while len(data) == self.dl_chunksize:
             data = response.read(self.dl_chunksize)
             output.write(data)
-        return
 
     def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
         conn = httplib.HTTPSConnection(self.rest_host)

@@ -1,27 +1,30 @@
+#!/usr/bin/env python
+
 """
-Fetch data from SQLShare using a SQL query
+Tag many datasets"
 """
 import sys
 import sqlshare
-import httplib
-httplib.HTTPConnection.debuglevel = 1
 
-"""print usage"""
 def usage():
+    """print usage"""
     cmd = """python %s <dataset_pattern> "<tag1> <tag2> ... <tagn>" [<username>] [<api-key>]""" % __file__
     exmp = """
   Example:
-  python %s "For Share%.txt" "biomed HT_screening_result" billhowe@washington.edu foo
+  python %s "For Share%%.txt" "biomed HT_screening_result" billhowe@washington.edu foo
   """ % __file__
     return cmd + exmp
 
 def settags(dataset_pattern, tags, username, password):
-    conn = sqlshare.SQLShare(username,password)
+    conn = sqlshare.SQLShare(username, password)
     tbls = conn.download_sql_result("select name from sys.views where name like '%%%s%%'" % dataset_pattern)
     #tbls = conn.execute_sql("select * from sys.tables")
     for dataset in tbls.split("\n")[1:-1]:
         success = conn.set_tags(dataset.strip(), tags)
-        if success: print "tags %s added to dataset %s" % (tags, dataset)
+        if success:
+            print "tags %s added to dataset %s" % (tags, dataset)
+        else:
+            print >> sys.stderr, "unable to add tags %s to dataset %s" % (tags, dataset)
 
 def main():
     if len(sys.argv) < 2:

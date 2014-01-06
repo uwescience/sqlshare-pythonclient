@@ -1,13 +1,12 @@
+#!/usr/bin/env python
 """
 Fetch data from SQLShare using a SQL query
 """
 import sys
 import sqlshare
-import httplib
-httplib.HTTPConnection.debuglevel = 1
 
-"""print usage"""
 def usage():
+    """print usage"""
     cmd = """python %s <dataset_name> "<tag1> <tag2> ... <tagn>" [<username>] [<api-key>]""" % __file__
     exmp = """
   Example:
@@ -16,9 +15,10 @@ def usage():
     return cmd + exmp
 
 def settags(dataset, tags, username, password):
-    conn = sqlshare.SQLShare(username,password)
+    conn = sqlshare.SQLShare(username, password)
     success = conn.set_tags(dataset, tags)
-    if success: print "tags %s added to dataset %s" % (tags, dataset)
+    if success:
+        print "tags %s added to dataset %s" % (tags, dataset)
 
 def main():
     if len(sys.argv) < 2:

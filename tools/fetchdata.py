@@ -1,12 +1,11 @@
 #! /usr/bin/env python
-# vim: tabstop=2 softtabstop=2 shiftwidth=2 expandtab
 """
 Fetch data from SQLShare using a SQL query
 """
 
 # Check Python version first.
 import sys
-if sys.version_info < (2,7):
+if sys.version_info < (2, 7):
     raise NotImplementedError("fetchdata.py requires Python 2.7 or later.")
 
 import argparse
@@ -16,18 +15,9 @@ import sqlshare
 # Debugging
 httplib.HTTPConnection.debuglevel = 0
 
-"""print usage"""
-def usage():
-    cmd = """python %s <sql> [<username>] [<api-key>]""" % __file__
-    exmp = """
-  Example:
-  python %s billhowe@washington.edu foo "select * from sys.tables"
-  """ % __file__
-    return cmd + exmp
-
-def fetchdata(sql, format, output):
+def fetchdata(sql, format_, output):
     conn = sqlshare.SQLShare()
-    return conn.download_sql_result(sql, format, output)
+    conn.download_sql_result(sql, format_, output)
 
 def get_parser():
     """Build the parser for the arguments to this program."""
@@ -68,7 +58,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
     # Fetch the data
-    data = fetchdata(args.sql, args.format, args.output)
+    fetchdata(args.sql, args.format, args.output)
     args.output.close()
 
 

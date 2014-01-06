@@ -1,24 +1,15 @@
+#!/usr/bin/env python
 """
 Upload multiple files to sqlshare
 """
 
-import sys
 import sqlshare
 from optparse import OptionParser
 
 
-"""print usage"""
-def usage():
-    cmd = """python %s [-u <username> -p <password>] <file1> <file2> ... <fileN>""" % __file__
-    exmp = """
-  Example:
-  python %s armbrustlab <password> *.txt
-  """ % __file__
-    return cmd + exmp
-
-"""Upload multiple files matched by a glob pattern"""
-def multiupload(exprs,username, password):
-    conn = sqlshare.SQLShare(username,password)
+def multiupload(exprs, username, password):
+    """Upload multiple files matched by a glob pattern"""
+    conn = sqlshare.SQLShare(username, password)
     for globexpr in exprs:
         print "uploading %s" % globexpr
         for response in conn.upload(globexpr):

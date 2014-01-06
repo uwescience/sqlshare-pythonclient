@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Upload multiple files to sqlshare
 """
@@ -5,8 +6,8 @@ Upload multiple files to sqlshare
 import sys
 import sqlshare
 
-"""print usage"""
 def usage():
+    """print usage"""
     cmd = """python %s <username> <password> <sql> <name> <description>""" % __file__
     exmp = """
   Example:
@@ -14,11 +15,11 @@ def usage():
   """ % __file__
     return cmd + exmp
 
-def savequery(sql,name, description,username, password):
-    conn = sqlshare.SQLShare(username,password)
+def savequery(sql, name, description, username, password):
+    conn = sqlshare.SQLShare(username, password)
     info = conn.get_userinfo()
     schema = info["schema"]
-    conn.save_query(sql,schema,name, description)
+    conn.save_query(sql, schema, name, description)
 
 def main():
     if len(sys.argv) < 4:
