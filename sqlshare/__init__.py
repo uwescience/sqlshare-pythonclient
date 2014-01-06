@@ -82,7 +82,9 @@ class SQLShare(object):
         self.DL_CHUNKSIZE = self.config.getint('sqlshare', 'dlChunkSize')
         self.schema = self.get_userinfo()["schema"]
 
-    def set_auth_header(self, header = {}):
+    def set_auth_header(self, header=None):
+        if not header:
+            header = {}
         header['Authorization'] = 'ss_apikey ' + self.username + ' : ' + self.password
         return header
 
@@ -94,17 +96,12 @@ class SQLShare(object):
             lines = f.readlines(size)
 
 
-    def post_file(self, filepath, tablename=None, hasHeader='true', delimiter='tab'):
+    def post_file(self, filepath):
         """
       Upload a datasheet into Sql
-      @param tablename: the tablename that should be created on this datafile.  Defaults to filename.
       @param fileobj: file-like object to upload
-      @param hasHeader: (optional default = true) STRING 'true' or 'false' if the document has a header
-      @param delimiter: (optional default = tab) the character to be a delimiter, or 'tab' to refer to '\t'
         """
         filename = os.path.basename(filepath)
-        fileobj = open(filepath)
-        fields = []
         content_type, body = _encode_multipart_formdata_via_chunks(filename, chunk)
 
         h = httplib.HTTPSConnection(self.HOST)
@@ -124,8 +121,6 @@ class SQLShare(object):
 
     def post_file_chunk(self, filepath, dataset_name, chunk, force_append, force_column_headers):
         filename = os.path.basename(filepath)
-        fileobj = open(filepath)
-        fields = []
         content_type, body = _encode_multipart_formdata_via_chunks(filename, chunk)
 
         h = httplib.HTTPSConnection(self.HOST)
@@ -147,7 +142,7 @@ class SQLShare(object):
         if res.status == 200: return res.read()
         else: raise SQLShareError("%s: %s" % (res.status, res.read()))
 
-    def upload(self, filepath, tablenames=None, hasHeader='true', delimiter='tab'):
+    def upload(self, filepath, tablenames=None):
         """
       Upload multiple files to sqlshare.  Assumes all files have the same format.
       @param tablename: the tablename that should be created on this datafile
@@ -244,8 +239,10 @@ class SQLShare(object):
 
 
     # TODO: Add a generic PUT, or generalize this method
-    def poll_selector(self, selector, verb = 'GET', returnresponse = False, headers={}):
+    def poll_selector(self, selector, verb = 'GET', returnresponse = False, headers=None):
         "Generic GET method to poll for a response"
+        if not headers:
+            headers = {}
         while True:
             h = httplib.HTTPSConnection(self.HOST)
             headers.update(self.set_auth_header())
@@ -320,9 +317,9 @@ class SQLShare(object):
         selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))
         h.request('DELETE', selector, '', headers)
 
-    def download_sql_result(self, sql, format='csv', output=None):
+    def download_sql_result(self, sql, fmt='csv', output=None):
         """Return the result of a SQL query as delimited text."""
-        selector = "%s/file?sql=%s&format=%s" % (self.RESTDB, urllib.quote(sql), format)
+        selector = "%s/file?sql=%s&format=%s" % (self.RESTDB, urllib.quote(sql), fmt)
         response = self.poll_selector(selector, returnresponse=True)
         if output is None:
             return response.read()
@@ -422,8 +419,10 @@ class SQLShare(object):
         selector = "%s/dataset/%s/%s/permissions" % (self.RESTDB2, urllib.quote(schema), urllib.quote(name))
         return json.loads(self.poll_selector(selector))
 
-    def set_permissions(self, name, is_public=False, is_shared=False, authorized_viewers=[]):
+    def set_permissions(self, name, is_public=False, is_shared=False, authorized_viewers=None):
         """ Share table with given users """
+        if not authorized_viewers:
+            authorized_viewers = []
         h = httplib.HTTPSConnection(self.HOST)
         headers = {
             'Content-Type': 'application/json',
@@ -445,7 +444,7 @@ class SQLShare(object):
         else: raise SQLShareError("%s: %s" % (res.status, res.read()))
 
 
-class SQLShareUploadResponse:
+class SQLShareUploadResponse(object):
     SUCCESS = 200
     ERROR = 400
     ACCEPTED = 202
@@ -478,7 +477,6 @@ def _encode_multipart_formdata_via_chunks(filename, chunk):
     BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
     CRLF = '\r\n'
     L = []
-    file_size = len(chunk)
     contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
     L.append('--%s' % BOUNDARY)
     # L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
@@ -509,7 +507,6 @@ DO NOT ERASE, USED AS MULTIPART REFERENCE
         L.append('')
         L.append(value)
     for (tablename, fd) in files:
-        file_size = os.fstat(fd.fileno())[stat.ST_SIZE]
         filename = os.path.basename(fd.name) #fd.name.split('/')[-1]
         #filename = filename.split('\\')[-1]
         contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
