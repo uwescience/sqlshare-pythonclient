@@ -127,6 +127,103 @@ class SQLShare(object):
         else:
             raise SQLShareError("%s: %s" % (res.status, res.read()))
 
+    def __post_file_chunk_v3(self, conn, dataset_name, chunk, upload_id=None):
+        """Using the v3 upload API, posts a chunk of the file to the specified
+        dataset. If upload_id is None, a new file upload process is initiated.
+        Otherwise, the existing process is used and the data is appended. In
+        either case, the upload_id is returned."""
+
+        content_type, body = encode_multipart_formdata_chunk(dataset_name, chunk)
+        headers = {
+          'User-Agent': 'python_multipart_caller',
+          'Content-Type': content_type,
+        }
+        self.__set_auth_header(headers)
+
+        # See http://escience.washington.edu/get-help-now/sql-share-rest-api
+        # Upload (A) is do a POST of the first chunk to the right url
+        if not upload_id:
+            selector = '{}/v3/file'.format(self.REST)
+        else:
+            selector = '{}/v3/file/{}'.format(self.REST, upload_id)
+
+        conn.request('POST', selector, body, headers)
+
+        res = conn.getresponse()
+        if res.status == 200:
+            return json.loads(res.read())
+        else:
+            raise SQLShareError("%s: %s" % (res.status, res.read()))
+
+    def upload_file(self, filename, tablename=None):
+        """Uploads the specified file to the specified table. Does this using
+        the V3 API, not the V2 API. Faster and less error-prone, but does not
+        use the append-based semantics."""
+
+        # Figure out table name
+        if not isinstance(tablename, basestring):
+            tablename = os.path.basename(filename)
+        # Open file and debug (throwing error if not exist or not readable)
+        file_ = open(filename, 'r')
+        size = os.stat(filename).st_size
+        if not size:
+            raise SQLShareError("Cannot upload empty file {}".format(filename, size))
+        print >> sys.stderr, \
+            "Uploading file {0} ({2} bytes) into a table named {1}" \
+            .format(filename, tablename, size)
+
+        # Connect to the REST server
+        conn = httplib.HTTPSConnection(self.rest_host)
+
+        start_time = time.time()
+        cur_bytes = 0
+        # (A) First chunk, get upload_id
+        bytes_ = file_.read(self.chunksize)
+        cur_bytes += len(bytes_)
+        upload_id = self.__post_file_chunk_v3(conn, tablename, bytes_)
+        elapsed = time.time() - start_time
+        print >> sys.stderr, "Uploaded {:d}/{:d} bytes, {:.1f}s elapsed/{:.1f}s expected" \
+            .format(cur_bytes, size, elapsed,
+                    _expected_time(cur_bytes, size, elapsed))
+
+        # (B) Rest of the chunks to upload_id-specific URL
+        bytes_ = file_.read(self.chunksize)
+        while bytes_:
+            cur_bytes += len(bytes_)
+            self.__post_file_chunk_v3(conn, tablename, bytes_, upload_id)
+            elapsed = time.time() - start_time
+            print >> sys.stderr, "Uploaded {:d}/{:d} bytes, {:.1f}s elapsed/{:.1f}s expected" \
+                .format(cur_bytes, size, elapsed,
+                        _expected_time(cur_bytes, size, elapsed))
+            bytes_ = file_.read(self.chunksize)
+
+        # (C) Get the parser
+        selector = '{}/v3/file/{}/parser'.format(self.REST, upload_id)
+        conn.request('GET', selector, headers=self.__set_auth_header())
+        res = conn.getresponse()
+        if res.status != 200:
+            raise SQLShareError('Unable to get parser for file {} (upload_id {}): {}' \
+                    .format(filename, upload_id, res.read()))
+        else:
+            parser = res.read()
+
+        # (E) [skip D which changes the parser]
+        selector = '{}/v3/file/{}/database'.format(self.REST, upload_id)
+        headers = self.__set_auth_header()
+        headers['Content-type'] = 'application/json'
+        conn.request('PUT', selector, body=parser, headers=headers)
+        res = conn.getresponse()
+        if res.status != 202:
+            raise SQLShareError('Transfer of file {} (upload_id {}) to database failed: {}' \
+                    .format(filename, upload_id, res.read()))
+
+        # (F) poll the selector until 200 is received.
+        res = json.loads(self.__poll_selector(selector))
+        print >> sys.stderr, "Successfully uploaded {} rows to dataset {}" \
+                .format(res['records_total'], tablename)
+
+        conn.close()
+
     def upload(self, filepath, tablenames=None):
         """
       Upload multiple files to sqlshare.  Assumes all files have the same format.
@@ -143,10 +240,10 @@ class SQLShare(object):
         # get user info; we need the schema name
 
         for filename, tablename in pairs:
-            yield self.uploadone(filename, tablename)
+            yield self.upload_file(filename, tablename)
 
     def uploadone(self, filename, dataset_name, force_append=None, force_column_headers=None):
-        file_ = open(filename)
+        file_ = open(filename, 'r')
         first_chunk = True
         start = time.time()
         restart_filename = _restartfile(filename)
@@ -236,7 +333,7 @@ class SQLShare(object):
             headers.update(self.__set_auth_header())
             conn.request(verb, selector, '', headers)
             res = conn.getresponse()
-            if res.status == 200:
+            if res.status in [200, 201]:
                 if returnresponse:
                     return res
                 else:
@@ -451,3 +548,6 @@ def encode_multipart_formdata_chunk(filename, chunk):
 # construct the name of the restart file for long uploads
 def _restartfile(filename):
     return filename + ".sqlshare.restart"
+
+def _expected_time(cur_size, total_size, cur_time):
+    return float(cur_time * total_size) / cur_size

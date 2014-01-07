@@ -32,7 +32,7 @@ def main():
     else:
         datasetname = options.datasetname
 
-    conn.uploadone(args[0], datasetname)
+    conn.upload_file(args[0], datasetname)
 
 if __name__ == '__main__':
     main()
