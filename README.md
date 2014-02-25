@@ -95,6 +95,8 @@ The Python API reads login information from a configuration file, stored in your
 
 Note that password is your API key, not your UW NetID or Google Account password.
 
+Your user name is shown at the top right in SQLShare. It is typically your email address.
+
 # The source code
 
 The SQL Share Python API and clients are under src/python/sqlshare/ in the SVN repository and have following structure.
