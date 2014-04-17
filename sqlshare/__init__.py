@@ -191,7 +191,7 @@ Upload multiple files to sqlshare.  Assumes all files have the same format.
           f = open(rfn,"w")
           f.write(str(pos))
           f.close()
-          print >> sys.stderr, "Error uploading data in the chunk starting at pos %d (lines %d to %d): %s" % (pos, lines, lines+chunk_count, e)
+          print >> sys.stderr, "Error uploading data in the chunk starting at pos %d (lines %d to %d): %s" % (pos, lines, lines+chunk_lines, e)
           break
         lines += chunk_lines
         first_chunk = False           
