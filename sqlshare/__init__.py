@@ -219,8 +219,11 @@ class SQLShare(object):
 
         # (F) poll the selector until 200 is received.
         res = json.loads(self.__poll_selector(selector))
-        print >> sys.stderr, "Successfully uploaded {} rows to dataset {}" \
-                .format(res['records_total'], tablename)
+        if 'detail' in res:
+            print >> sys.stderr, res['detail']
+        else:
+            print >> sys.stderr, "Successfully uploaded {} rows to dataset {}" \
+                    .format(res['records_total'], tablename)
 
         conn.close()
 
