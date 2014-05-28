@@ -1,7 +1,12 @@
 A Python client for the SQLShare REST API.
 ==========================================
 
+# Quick Example of Use
+
+[IPython Notebook Example of using the SQLShare Python Client](http://nbviewer.ipython.org/github/uwescience/sqlshare-pythonclient/blob/dd91fa90f0a22cf24e93f3ee0b8fd5d372621ce3/ipnb_html_wrapper_demo/SQLShare%20for%20python.ipynb)
+
 # Quick Setup Instructions
+
 
 These quick instructions are provided for experts comfortable with the command-line environments and open-source tools. For more detailed instructions, see [below](#setup-instructions).
 
