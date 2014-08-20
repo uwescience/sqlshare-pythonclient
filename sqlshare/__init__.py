@@ -198,6 +198,7 @@ class SQLShare(object):
             bytes_ = file_.read(self.chunksize)
 
         # (C) Get the parser
+        print >> sys.stderr, "Upload complete, parsing the file to determine"
         selector = '{}/v3/file/{}/parser'.format(self.REST, upload_id)
         conn.request('GET', selector, headers=self.__set_auth_header())
         res = conn.getresponse()
@@ -208,6 +209,7 @@ class SQLShare(object):
             parser = res.read()
 
         # (E) [skip D which changes the parser]
+        print >> sys.stderr, "Parsing complete, beginning transfer to the database. (This can take a while...)"
         selector = '{}/v3/file/{}/database'.format(self.REST, upload_id)
         headers = self.__set_auth_header()
         headers['Content-type'] = 'application/json'
@@ -219,8 +221,9 @@ class SQLShare(object):
 
         # (F) poll the selector until 200 is received.
         res = json.loads(self.__poll_selector(selector))
-        if 'detail' in res:
-            msg = res['detail']
+        if 'Detail' in res:
+            conn.close()
+            raise SQLShareUploadError(res['Detail'])
         else:
             msg = ("Successfully uploaded {} rows to dataset {}"
                    .format(res['records_total'], tablename))

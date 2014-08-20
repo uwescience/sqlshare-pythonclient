@@ -11,10 +11,9 @@ def multiupload(exprs, username, password):
     """Upload multiple files matched by a glob pattern"""
     conn = sqlshare.SQLShare(username, password)
     for globexpr in exprs:
-        print "uploading {dataset}".format{dataset=globexpr}
+        print "uploading {dataset}".format(dataset=globexpr)
         for response in conn.upload(globexpr):
-            print ("Successfully uploaded {dataset}, response {resp}"
-                   .format(dataset=globexpr, resp=response))
+            print response
 
 def main():
     parser = OptionParser(usage="usage: %prog [options] <file1> <file2> ... <fileN>")
