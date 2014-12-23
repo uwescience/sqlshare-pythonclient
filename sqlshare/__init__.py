@@ -249,6 +249,9 @@ Generic GET method to poll for a response
   """
   # TODO: Add a generic PUT, or generalize this method
   def poll_selector(self, selector, verb = 'GET', returnresponse = False, headers={}):    
+    # TODO: Fix SQLShare server to return a leading slash for Location response
+    if selector[0] != "/": 
+      selector = "/" + selector
     while True:        
         h = httplib.HTTPSConnection(self.HOST)
         headers.update(self.set_auth_header())
@@ -366,10 +369,16 @@ Save a query
     """Execute a sql query"""
     h = httplib.HTTPSConnection(self.HOST)        
     headers = self.set_auth_header()
-    selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql),maxrows)    
-    h.request('GET', selector, '', headers)
+    headers["Content-type"] = "application/json"
+    #headers["Accept"] = "application/json"
+    body = {"sql":sql, 
+            "max_records":maxrows
+            }
+    selector = self.RESTDB2
+    h.request('POST', selector, json.dumps(body), headers)
     res = h.getresponse()
     if res.status == 202: #accepted
+      res.read()
       location = res.getheader('Location')
       return json.loads(self.poll_selector(location))
     else:
