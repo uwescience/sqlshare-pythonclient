@@ -370,7 +370,6 @@ Save a query
     h = httplib.HTTPSConnection(self.HOST)        
     headers = self.set_auth_header()
     headers["Content-type"] = "application/json"
-    #headers["Accept"] = "application/json"
     body = {"sql":sql, 
             "max_records":maxrows
             }
