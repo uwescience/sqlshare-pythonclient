@@ -334,12 +334,12 @@ Save a query
     selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))    
     h.request('DELETE', selector, '', headers)       
 
-  def download_sql_result(self, sql, format='csv', output=None):
+  def download_sql_result(self, sql, format='csv', output=sys.stdout):
     """Return the result of a SQL query as delimited text."""
     selector = "%s/file?sql=%s&format=%s" % (self.RESTDB, urllib.quote(sql), format)    
     response = self.poll_selector(selector, returnresponse=True)
     if output is None:
-        return response.read()
+        output = sys.stdout
     data = response.read(self.DL_CHUNKSIZE)
     output.write(data)
     while len(data) == self.DL_CHUNKSIZE:

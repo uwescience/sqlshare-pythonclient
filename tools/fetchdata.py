@@ -60,7 +60,7 @@ def get_parser():
   parser.add_argument('--output', '-o',
       help='Where to save the downloaded file.',
       type=argparse.FileType('w'),
-      required=True)
+      required=False)
   return parser
 
 def main():
@@ -69,7 +69,8 @@ def main():
   args = parser.parse_args()
   # Fetch the data
   data = fetchdata(args.sql, args.format, args.output)
-  args.output.close()
+  if args.output:
+    args.output.close()
 
 
 if __name__ == '__main__':
