@@ -9,7 +9,7 @@ https://github.com/uwescience/sqlshare-pythonclient/
 import os.path, tempfile
 import glob
 import stat, mimetypes
-import httplib
+import httplib, ssl
 import json
 import urllib
 import sys, os, time
@@ -106,7 +106,8 @@ class SQLShare(object):
         filename = os.path.basename(filepath)
         content_type, body = encode_multipart_formdata_chunk(filename, chunk)
 
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
         headers = {
           'User-Agent': 'python_multipart_caller',
           'Content-Type': content_type,
@@ -173,7 +174,8 @@ class SQLShare(object):
             .format(filename, tablename, size)
 
         # Connect to the REST server
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
 
         start_time = time.time()
         cur_bytes = 0
@@ -311,7 +313,8 @@ class SQLShare(object):
     def set_tags(self, name, tags):
         "Set the tags for a given dataset."
         schema = self.schema
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -336,7 +339,8 @@ class SQLShare(object):
         if not headers:
             headers = {}
         while True:
-            conn = httplib.HTTPSConnection(self.rest_host)
+            # TODO: remove unverified context hack once server certificate gets updated.
+            conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
             headers.update(self.__set_auth_header())
             conn.request(verb, selector, '', headers)
             res = conn.getresponse()
@@ -359,7 +363,8 @@ class SQLShare(object):
 
     # attempt to generalize table operations--use poll selector instead
     def __tableop(self, tableid, operation):
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
         headers = self.__set_auth_header()
         selector = '%s/%s/%s' % (self.RESTFILE, urllib.quote(tableid), operation)
         conn.request('GET', selector, '', headers)
@@ -378,7 +383,8 @@ class SQLShare(object):
 
     def save_query(self, sql, name, description, is_public=False):
         "Save a query"
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
@@ -401,7 +407,8 @@ class SQLShare(object):
         else: raise SQLShareError("%s: %s" % (res.status, res.read()))
 
     def delete_query(self, query_name):
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
         headers = self.__set_auth_header()
         selector = "%s/query/%s/%s" % (self.RESTDB, urllib.quote(self.schema), urllib.quote(query_name))
         conn.request('DELETE', selector, '', headers)
@@ -419,7 +426,8 @@ class SQLShare(object):
             output.write(data)
 
     def materialize_table(self, query_name, new_table_name=None, new_query_name=None):
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
         headers = self.__set_auth_header()
         selector = "/REST.svc/v1/materialize?query_name=%s" % urllib.quote(query_name)
 
@@ -438,7 +446,8 @@ class SQLShare(object):
 
     def execute_sql(self, sql, maxrows=700):
         """Execute a sql query"""
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
         headers = self.__set_auth_header()
         selector = "%s?sql=%s&maxrows=%s" % (self.RESTDB, urllib.quote(sql), maxrows)
         conn.request('GET', selector, '', headers)
@@ -462,7 +471,8 @@ class SQLShare(object):
     def table_exists(self, filename):
         """ Return true if a table exists """
         #httplib.HTTPSConnection.debuglevel = 5
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
         headers = self.__set_auth_header()
         selector = "%s/%s/table" % (self.RESTFILE, urllib.quote(filename))
         conn.request('GET', selector, '', headers)
@@ -484,7 +494,8 @@ class SQLShare(object):
         """ Share table with given users """
         if not authorized_viewers:
             authorized_viewers = []
-        conn = httplib.HTTPSConnection(self.rest_host)
+        # TODO: remove unverified context hack once server certificate gets updated.
+        conn = httplib.HTTPSConnection(self.rest_host, context=ssl._create_unverified_context())
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
